@@ -1,0 +1,21 @@
+{
+  "name": "fugue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "全双工、多端可达、可委派多种 agent harness 的对话编排中枢",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test 'test/*.test.mjs'",
+    "poc": "node poc/run-conformance.mjs",
+    "start": "node src/launcher.mjs"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.74.0",
+    "qwen-audio-agent": "^2.0.1",
+    "ws": "^8.21.3"
+  }
+}

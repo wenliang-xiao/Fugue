@@ -1,0 +1,21 @@
+# 依赖
+node_modules/
+
+# 环境与密钥（含飞书 appSecret、harness 凭据等，严禁入库）
+.env
+.env.*
+config/config.env
+config/.env
+!config/config.example.env
+
+# 本地工具生成的隐藏目录（仅本地使用，禁止提交）
+.pi/
+.opencode/
+.trellis/
+.claude/
+.github/prompts/
+.github/skills/
+
+# 系统与日志
+.DS_Store
+*.log
