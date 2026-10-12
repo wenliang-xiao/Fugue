@@ -68,6 +68,10 @@ export class MultiBackendAdapter {
   }
 
   async health() {
+    // qwen-audio-agent 在 health() 时懒启动 backend（不会显式调 start()）
+    if (!this.ready && !this.closed) {
+      await this.start()
+    }
     const results = await Promise.all(
       Object.values(this.backends).map(b => b.health()),
     )
@@ -89,6 +93,7 @@ export class MultiBackendAdapter {
   }
 
   async submit(work, context = {}) {
+    if (!this.ready && !this.closed) await this.start() // 懒启动（与 health 一致）
     const backendId = this._backendIdFor(work)
     const id = clean(work?.id)
     // 只在首次提交时登记 taskMap；重复 submit（任务已在进行）不覆盖，避免误删 hold 记录

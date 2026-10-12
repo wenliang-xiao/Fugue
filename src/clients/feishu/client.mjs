@@ -41,6 +41,7 @@ export class FeishuClient {
     this.gateway = null
     this.chatId = null
     this.pendingPermission = null // { permissionId, taskId }
+    this.startedResponses = new Set() // 已回执 playback 的 responseId
   }
 
   async start() {
@@ -96,6 +97,23 @@ export class FeishuClient {
   }
 
   async handleGatewayEvent(event = {}) {
+    // text_only client 需回执 playback，Gateway 才下发文本转写（transcript）
+    if (event.type === 'audio.delta') {
+      const responseId = String(event.responseId || '')
+      if (responseId && !this.startedResponses.has(responseId)) {
+        this.startedResponses.add(responseId)
+        this.gateway?.send({ type: 'playback.started', responseId })
+      }
+      return
+    }
+    if (event.type === 'audio.done') {
+      const responseId = String(event.responseId || '')
+      if (responseId && this.startedResponses.has(responseId)) {
+        this.startedResponses.delete(responseId)
+        this.gateway?.send({ type: 'playback.ended', responseId })
+      }
+      return
+    }
     if (event.type === 'task.permission.requested') {
       const auth = event.task?.authorization || event.permission
       if (auth?.id) {

@@ -77,3 +77,21 @@ test('事件聚合：子 backend 事件透传到上层，taskId 为 gateway task
   assert.ok(events.every(e => e.ownerId === 'o1'))
   await backend.close()
 })
+
+test('health 懒启动：不显式 start 也能就绪（回归修复：backend_unavailable）', async () => {
+  const { backend } = makeFixture({ hold: false })
+  // 不调 backend.start()，直接 health()——qwen-audio-agent 的真实路径
+  const health = await backend.health()
+  assert.equal(health.ok, true)
+  assert.equal(backend.ready, true)
+  await backend.close()
+})
+
+test('submit 懒启动：不显式 start 也能委派', async () => {
+  const { backend } = makeFixture({ hold: false })
+  // 不调 backend.start()，直接 submit()
+  const outcome = await backend.submit({ id: 't6', ownerId: 'o1', instruction: 'x' })
+  assert.match(outcome.content, /MockBackend\(a\)/)
+  assert.equal(backend.ready, true)
+  await backend.close()
+})
