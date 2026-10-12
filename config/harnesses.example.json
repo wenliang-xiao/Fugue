@@ -1,0 +1,33 @@
+{
+  "harnesses": [
+    {
+      "id": "pi",
+      "label": "Pi · 工作主力",
+      "protocol": "pi",
+      "domains": ["工作", "周报", "文档", "任务"],
+      "default": true
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode · 代码",
+      "protocol": "opencode",
+      "domains": ["写代码", "修bug", "重构", "实现"]
+    },
+    {
+      "id": "my-agent",
+      "label": "我的自定义 ACP agent",
+      "command": "my-agent",
+      "args": ["--acp"],
+      "domains": ["调研", "长程"]
+    },
+    {
+      "id": "finance",
+      "label": "财经工具集",
+      "mcp": {
+        "command": "python",
+        "args": ["mcp_akshare_server.py"]
+      },
+      "domains": ["财经", "投资", "股票", "基金", "ETF", "行情", "量化", "大盘", "财报"]
+    }
+  ]
+}

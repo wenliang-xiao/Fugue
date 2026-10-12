@@ -6,25 +6,32 @@ import { MultiBackendAdapter } from './backend/multi-backend-adapter.mjs'
 import { createRouter } from './backend/routing.mjs'
 import {
   createHarnessBackend,
-  createSshHermesBackend,
 } from './backend/backends/harness-backend.mjs'
 import { loadConfig } from './config.mjs'
 import { FeishuClient } from './clients/feishu/client.mjs'
 import { createLarkConnection } from './clients/feishu/lark-connection.mjs'
 
+/**
+ * 根据 harness 配置动态创建 backend：
+ * - spec.protocol：内置协议（pi/opencode/deepseek/...）
+ * - spec.command + args：任意 ACP harness（走 generic-acp）
+ */
 export async function buildBackends(cfg) {
   const backends = {}
-  if (cfg.backends.opencode?.enabled) {
-    backends.opencode = await createHarnessBackend({ protocol: 'opencode' })
-  }
-  if (cfg.backends.pi?.enabled) {
-    backends.pi = await createHarnessBackend({ protocol: 'pi' })
-  }
-  if (cfg.backends.hermes?.enabled) {
-    backends.hermes = await createSshHermesBackend({ host: cfg.backends.hermes.host })
-  }
-  if (cfg.backends.dsh?.enabled) {
-    backends.dsh = await createHarnessBackend({ protocol: 'deepseek' })
+  for (const [id, spec] of Object.entries(cfg.backends || {})) {
+    if (spec.protocol) {
+      backends[id] = await createHarnessBackend({
+        protocol: spec.protocol,
+        label: spec.label,
+      })
+    } else if (spec.command) {
+      backends[id] = await createHarnessBackend({
+        protocol: 'acp',
+        cliPath: spec.command,
+        args: spec.args,
+        label: spec.label,
+      })
+    }
   }
   return backends
 }
@@ -32,7 +39,7 @@ export async function buildBackends(cfg) {
 export async function buildAgent(cfg) {
   const backends = await buildBackends(cfg)
   if (Object.keys(backends).length === 0) {
-    throw new Error('没有启用任何后台 harness，请检查 config/config.env')
+    throw new Error('没有可用的后台 harness，请检查 config/harnesses.json')
   }
   const mba = new MultiBackendAdapter(backends, {
     router: createRouter({

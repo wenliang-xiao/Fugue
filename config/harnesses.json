@@ -1,0 +1,17 @@
+{
+  "harnesses": [
+    {
+      "id": "pi",
+      "label": "Pi · 工作主力",
+      "protocol": "pi",
+      "domains": ["工作", "周报", "文档", "任务"],
+      "default": true
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode · 代码",
+      "protocol": "opencode",
+      "domains": ["写代码", "修bug", "重构", "实现"]
+    }
+  ]
+}

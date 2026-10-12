@@ -20,12 +20,17 @@ async function loadAcpFactory() {
 }
 
 /**
+ * 创建 harness backend（复用 qwen-audio-agent 的 ACP factory）。
+ * 支持两类：
+ * - protocol：内置协议（pi/opencode/deepseek/...）
+ * - protocol: 'acp' + cliPath + args：任意 ACP harness（generic-acp driver）
+ * 对应 REQ-005，设计见 docs/02-tech/harness-registry.md。
+ *
  * @param {object} spec
- * @param {string} spec.protocol backend id（'opencode'|'pi'|'hermes'|'acp' 等）
- * @param {string} [spec.cliPath] 覆盖启动命令（如 'ssh'）
- * @param {string[]} [spec.args] 覆盖启动参数（仅 generic acp driver 支持）
+ * @param {string} spec.protocol backend id（'opencode'|'pi'|'acp' 等）
+ * @param {string} [spec.cliPath] 任意 ACP 的启动命令（如 'ssh' / 'my-agent'）
+ * @param {string[]} [spec.args] 启动参数（仅 generic acp driver 支持）
  * @param {string} [spec.label] 显示名
- * @param {string} [spec.model] 模型
  * @param {string} [spec.permissionMode] 权限模式
  */
 export async function createHarnessBackend(spec = {}) {
@@ -37,16 +42,5 @@ export async function createHarnessBackend(spec = {}) {
     backends: {
       [protocol]: backendConfig,
     },
-  })
-}
-
-/** Hermes 远端（SSH 隧道透传 ACP stdio）——ADR-0004 */
-export async function createSshHermesBackend({ host, cliPath = 'ssh', label = 'Hermes(远端)' } = {}) {
-  if (!host) throw new TypeError('createSshHermesBackend requires host')
-  return createHarnessBackend({
-    protocol: 'acp',
-    label,
-    cliPath,
-    args: [host, 'hermes', 'acp', '--accept-hooks'],
   })
 }
