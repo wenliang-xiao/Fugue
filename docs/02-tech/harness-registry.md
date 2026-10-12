@@ -9,7 +9,7 @@
 
 Fugue 的核心能力之一：**用户只改配置文件，不改代码，就能接入任意 agent harness**。
 
-- 本地 opencode / pi / hermes-investment 只是验证机制的**实验**；
+- 本地 opencode / pi / hermes（远端）只是验证机制的**实验**；
 - 真正的价值是「任何开发者都能把自己的 harness（Claude Code、Codex、dsh、自研 ACP agent……）接进来，按领域分工、统一协调」。
 
 ## 2. 接入类型（三类）
@@ -18,7 +18,7 @@ Fugue 的核心能力之一：**用户只改配置文件，不改代码，就能
 |------|------|------|------|
 | **内置协议** | `protocol: pi/opencode/deepseek/...` | ACP | qwen-audio 原生支持的 harness |
 | **任意 ACP** | `command` + `args` | ACP stdio | 任何支持 ACP 的 harness（`claude --acp`、自研 agent）|
-| **MCP 工具集**（P1）| `mcp: {command, args}` | MCP | hermes-investment 财经工具、自定义工具集 |
+| **MCP 工具集**（P1）| `mcp: {command, args}` | MCP | 自定义工具集（非 agent 的能力源）|
 
 > MCP 工具集不是 BackendPort（不实现 submit/status/cancel），接入方式不同（前端 MCP 或挂到某 harness 的 MCP），P1 再做。P0 先落地 ACP 两类。
 
