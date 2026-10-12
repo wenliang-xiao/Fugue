@@ -64,3 +64,16 @@ test('显式指定不存在的 backend 原样返回（由 adapter 层报错）',
   const route = createRouter({ defaultBackend: 'opencode' })
   assert.equal(route({ routing: { backendId: 'nope' }, instruction: 'x' }), 'nope')
 })
+
+test('领域专家路由：财经→hermes，调研→dsh，其余→默认 pi', () => {
+  const route = createRouter({
+    defaultBackend: 'pi',
+    rules: [
+      { backendId: 'hermes', match: { instruction: ['财经', '投资', '股票', 'ETF', '行情', '量化', '大盘'] } },
+      { backendId: 'dsh', match: { instruction: ['深度调研', 'research', '长程', '综述', '行业研究'] } },
+    ],
+  })
+  assert.equal(route({ instruction: '帮我分析今天的大盘行情' }), 'hermes')
+  assert.equal(route({ instruction: '做个行业深度调研' }), 'dsh')
+  assert.equal(route({ instruction: '帮我写个周报' }), 'pi')
+})

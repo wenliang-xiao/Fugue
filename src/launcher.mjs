@@ -23,6 +23,9 @@ export async function buildBackends(cfg) {
   if (cfg.backends.hermes?.enabled) {
     backends.hermes = await createSshHermesBackend({ host: cfg.backends.hermes.host })
   }
+  if (cfg.backends.dsh?.enabled) {
+    backends.dsh = await createHarnessBackend({ protocol: 'deepseek' })
+  }
   return backends
 }
 
@@ -32,7 +35,10 @@ export async function buildAgent(cfg) {
     throw new Error('没有启用任何后台 harness，请检查 config/config.env')
   }
   const mba = new MultiBackendAdapter(backends, {
-    router: createRouter({ defaultBackend: cfg.routing.defaultBackend }),
+    router: createRouter({
+      defaultBackend: cfg.routing.defaultBackend,
+      rules: cfg.routing.rules,
+    }),
   })
   return createBackendAgentHost(mba)
 }

@@ -24,8 +24,27 @@ function loadEnvFile() {
 
 function backendEnabled(id, env) {
   const key = `AGENT_CONDUCTOR_BACKEND_${id.toUpperCase()}`
-  if (env[key] === undefined) return id === 'opencode' // 默认只开 opencode，其余显式开启
+  if (env[key] === undefined) return id === 'pi' // 默认只开 pi（工作主力），其余显式开启
   return truthy(env[key])
+}
+
+// 领域路由规则：backendId=关键词1|关键词2|...
+// 例：AGENT_CONDUCTOR_ROUTE_HERMES=财经|投资|股票 → 命中则路由到 hermes
+const ROUTABLE_BACKENDS = [
+  { backendId: 'hermes', key: 'AGENT_CONDUCTOR_ROUTE_HERMES' },
+  { backendId: 'dsh', key: 'AGENT_CONDUCTOR_ROUTE_DSH' },
+  { backendId: 'opencode', key: 'AGENT_CONDUCTOR_ROUTE_OPENCODE' },
+]
+
+function loadRouteRules(env) {
+  const rules = []
+  for (const { backendId, key } of ROUTABLE_BACKENDS) {
+    const raw = String(env[key] || '').trim()
+    if (!raw) continue
+    const keywords = raw.split('|').map(s => s.trim()).filter(Boolean)
+    if (keywords.length) rules.push({ backendId, match: { instruction: keywords } })
+  }
+  return rules
 }
 
 export function loadConfig(env = process.env) {
@@ -41,9 +60,11 @@ export function loadConfig(env = process.env) {
       opencode: { enabled: backendEnabled('opencode', merged), protocol: 'opencode' },
       pi: { enabled: backendEnabled('pi', merged), protocol: 'pi' },
       hermes: { enabled: backendEnabled('hermes', merged) && Boolean(hermesHost), host: hermesHost },
+      dsh: { enabled: backendEnabled('dsh', merged), protocol: 'deepseek' },
     },
     routing: {
-      defaultBackend: String(merged.AGENT_CONDUCTOR_DEFAULT_BACKEND || 'opencode').trim(),
+      defaultBackend: String(merged.AGENT_CONDUCTOR_DEFAULT_BACKEND || 'pi').trim(),
+      rules: loadRouteRules(merged),
     },
     feishu: {
       enabled: feishuEnabled,
