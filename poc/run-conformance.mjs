@@ -1,6 +1,6 @@
 // PoC 主入口：验证 MultiBackendAdapter 通过上游 BackendPort 一致性套件，
 // 并额外验证路由正确性与 owner 隔离。
-import { verifyBackendAdapterConformance } from '/Users/wenlix/project/qwen-audio-agent/server/src/backend/backend-adapter-sdk.mjs'
+import { verifyBackendAdapterConformance } from 'qwen-audio-agent/backend-adapter-sdk'
 import { MockBackend } from './mock-backend.mjs'
 import { MultiBackendAdapter } from './multi-backend-adapter.mjs'
 

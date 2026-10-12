@@ -1,7 +1,7 @@
 // MultiBackendAdapter 生产版：实现 BackendPort，聚合多个 harness backend，内部路由。
 // 对应 ADR-0002、REQ-005。
 // 依赖：qwen-audio-agent 的 backend-adapter-sdk（发布后改为 `qwen-audio-agent/backend-adapter-sdk`）。
-import { defineBackendAdapter } from '/Users/wenlix/project/qwen-audio-agent/server/src/backend/backend-adapter-sdk.mjs'
+import { defineBackendAdapter } from 'qwen-audio-agent/backend-adapter-sdk'
 import { createRouter } from './routing.mjs'
 
 function clean(value) {

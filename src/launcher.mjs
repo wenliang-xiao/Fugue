@@ -12,22 +12,22 @@ import { loadConfig } from './config.mjs'
 import { FeishuClient } from './clients/feishu/client.mjs'
 import { createLarkConnection } from './clients/feishu/lark-connection.mjs'
 
-export function buildBackends(cfg) {
+export async function buildBackends(cfg) {
   const backends = {}
   if (cfg.backends.opencode?.enabled) {
-    backends.opencode = createHarnessBackend({ protocol: 'opencode' })
+    backends.opencode = await createHarnessBackend({ protocol: 'opencode' })
   }
   if (cfg.backends.pi?.enabled) {
-    backends.pi = createHarnessBackend({ protocol: 'pi' })
+    backends.pi = await createHarnessBackend({ protocol: 'pi' })
   }
   if (cfg.backends.hermes?.enabled) {
-    backends.hermes = createSshHermesBackend({ host: cfg.backends.hermes.host })
+    backends.hermes = await createSshHermesBackend({ host: cfg.backends.hermes.host })
   }
   return backends
 }
 
-export function buildAgent(cfg) {
-  const backends = buildBackends(cfg)
+export async function buildAgent(cfg) {
+  const backends = await buildBackends(cfg)
   if (Object.keys(backends).length === 0) {
     throw new Error('没有启用任何后台 harness，请检查 config/config.env')
   }
@@ -40,7 +40,7 @@ export function buildAgent(cfg) {
 async function main() {
   const cfg = loadConfig()
 
-  const agent = buildAgent(cfg)
+  const agent = await buildAgent(cfg)
   const application = createGatewayApplication({ agent })
 
   let feishuClient = null

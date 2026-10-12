@@ -1,6 +1,6 @@
 // Mock BackendPort：用于 PoC 验证 MultiBackendAdapter 能否通过上游一致性套件。
 // 完整实现 BackendPort 的 10 个方法，支持 hold（挂起任务）与 owner 隔离。
-import { BackendEventType, backendEvent } from '/Users/wenlix/project/qwen-audio-agent/server/src/backend/backend-adapter-sdk.mjs'
+import { BackendEventType, backendEvent } from 'qwen-audio-agent/backend-adapter-sdk'
 
 function clean(value) {
   return String(value || '').trim()

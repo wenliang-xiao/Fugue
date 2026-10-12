@@ -1,7 +1,7 @@
 // MultiBackendAdapter PoC：实现 BackendPort，聚合多个 harness backend，内部路由。
 // 目标：验证"多 backend 可以封装在 BackendPort 后面"，通过上游一致性套件。
 // 对应 ADR-0002。
-import { defineBackendAdapter } from '/Users/wenlix/project/qwen-audio-agent/server/src/backend/backend-adapter-sdk.mjs'
+import { defineBackendAdapter } from 'qwen-audio-agent/backend-adapter-sdk'
 
 function clean(value) {
   return String(value || '').trim()

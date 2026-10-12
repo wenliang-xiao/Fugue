@@ -2,7 +2,7 @@
 // 追溯：ADR-0002、docs/04-test/cases/multi-backend-001.md
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { verifyBackendAdapterConformance } from '/Users/wenlix/project/qwen-audio-agent/server/src/backend/backend-adapter-sdk.mjs'
+import { verifyBackendAdapterConformance } from 'qwen-audio-agent/backend-adapter-sdk'
 import { MultiBackendAdapter } from '../src/backend/multi-backend-adapter.mjs'
 import { MockBackend } from './helpers/mock-backend.mjs'
 

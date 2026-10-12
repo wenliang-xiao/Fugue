@@ -1,5 +1,5 @@
 // 测试替身：完整实现 BackendPort 的 Mock backend，支持 hold 与 owner 隔离。
-import { BackendEventType, backendEvent } from '/Users/wenlix/project/qwen-audio-agent/server/src/backend/backend-adapter-sdk.mjs'
+import { BackendEventType, backendEvent } from 'qwen-audio-agent/backend-adapter-sdk'
 
 function clean(value) {
   return String(value || '').trim()

@@ -2,6 +2,11 @@
 
 > **Many agents, one fugue.** — 一个全双工、多端可达、可委派多种 agent harness 的对话编排中枢。
 
+[English](README.en.md) | 中文
+
+[![CI](https://github.com/wenliang-xiao/Fugue/actions/workflows/ci.yml/badge.svg)](https://github.com/wenliang-xiao/Fugue/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 把你自己已有的 agent harness（本地 OpenCode / Pi、云端 Hermes，以及任意 ACP/A2A 兼容的 harness）变成一个**随时随地、边聊边干、干完主动汇报**的助手：
 
 - **全双工对话**：像打电话一样同时说和听，随时插话、随时打断，不是一问一答。
@@ -144,4 +149,4 @@ npm run poc    # 上游 BackendPort 一致性套件
 
 ## License
 
-待定（倾向 Apache-2.0，与 qwen-audio-agent 一致）。
+[MIT](LICENSE)
