@@ -63,6 +63,27 @@ export function buildHarnessConfig(raw) {
   return { backends, rules, defaultBackend }
 }
 
+/**
+ * 生成总指挥提示词（替换 spawn_thinking 工具的 description）。
+ * 从 harnesses 配置动态生成专家列表，注入“自动协调”语义。
+ * 见 docs/02-tech/coordination-model.md。
+ */
+export function buildSpawnThinkingDescription(cfg) {
+  const experts = []
+  for (const [id, spec] of Object.entries(cfg.backends || {})) {
+    const rule = cfg.routing?.rules?.find(r => r.backendId === id)
+    const domains = rule?.match?.instruction?.join('、') || '通用'
+    experts.push(`${id}（${spec.label || id}，擅长：${domains}）`)
+  }
+  const expertList = experts.join('；')
+  return [
+    '调用后台领域专家访问或操作用户环境、设备、文件、屏幕、应用和代码，进行媒体创作、持续执行和制作交付物。',
+    `你是多专家团队的总指挥，团队：${expertList}。`,
+    '委派后根据结果自动判断：正确则自然汇总汇报；不对则带着纠正重新委派；需要换专家则改派给更合适的专家。',
+    '仅在涉及权限确认、不可逆操作或方向性选择时才询问用户，其余自动继续推进，直到任务完成。',
+  ].join('')
+}
+
 export function loadConfig(env = process.env) {
   const fileEnv = loadEnvFile()
   const merged = { ...fileEnv, ...env }

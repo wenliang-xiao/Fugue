@@ -7,7 +7,7 @@ import { createRouter } from './backend/routing.mjs'
 import {
   createHarnessBackend,
 } from './backend/backends/harness-backend.mjs'
-import { loadConfig } from './config.mjs'
+import { loadConfig, buildSpawnThinkingDescription } from './config.mjs'
 import { FeishuClient } from './clients/feishu/client.mjs'
 import { createLarkConnection } from './clients/feishu/lark-connection.mjs'
 
@@ -54,7 +54,10 @@ async function main() {
   const cfg = loadConfig()
 
   const agent = await buildAgent(cfg)
-  const application = createGatewayApplication({ agent })
+  const application = createGatewayApplication({
+    agent,
+    spawnThinkingDescription: buildSpawnThinkingDescription(cfg),
+  })
 
   let feishuClient = null
   if (cfg.feishu.enabled) {

@@ -1,7 +1,7 @@
 // harness 注册表测试：配置驱动的通用接入 + 领域路由自动生成
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildHarnessConfig } from '../src/config.mjs'
+import { buildHarnessConfig, buildSpawnThinkingDescription } from '../src/config.mjs'
 
 const sample = {
   harnesses: [
@@ -77,4 +77,26 @@ test('MCP 工具集（P1）跳过 backend，但保留 domains 规则', () => {
   })
   assert.deepEqual(cfg.backends, {})
   assert.equal(cfg.rules[0].backendId, 'finance')
+})
+
+test('总指挥提示词：从 harnesses 生成专家列表 + 自动协调语义', () => {
+  const cfg = {
+    backends: {
+      pi: { label: 'Pi · 工作主力' },
+      opencode: { label: 'OpenCode · 代码' },
+    },
+    routing: {
+      rules: [
+        { backendId: 'pi', match: { instruction: ['工作', '周报'] } },
+        { backendId: 'opencode', match: { instruction: ['写代码'] } },
+      ],
+    },
+  }
+  const desc = buildSpawnThinkingDescription(cfg)
+  assert.match(desc, /总指挥/)
+  assert.match(desc, /Pi · 工作主力/)
+  assert.match(desc, /擅长：工作、周报/)
+  assert.match(desc, /OpenCode · 代码/)
+  assert.match(desc, /自动判断/)
+  assert.match(desc, /权限确认/)
 })
