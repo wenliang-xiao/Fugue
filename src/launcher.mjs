@@ -1,6 +1,6 @@
 // Fugue 启动入口：组装 MultiBackendAdapter + Gateway + 飞书 client。
 // 对应 REQ-002/003/004/005/007。
-import { createGatewayApplication } from 'qwen-audio-agent/gateway-application'
+import { fileURLToPath } from 'node:url'
 import { createBackendAgentHost } from 'qwen-audio-agent/backend-adapter-sdk'
 import { MultiBackendAdapter } from './backend/multi-backend-adapter.mjs'
 import { createRouter } from './backend/routing.mjs'
@@ -10,6 +10,11 @@ import {
 import { loadConfig, buildSpawnThinkingDescription } from './config.mjs'
 import { FeishuClient } from './clients/feishu/client.mjs'
 import { createLarkConnection } from './clients/feishu/lark-connection.mjs'
+
+// 前台提示词目录：Fugue 自定义“总指挥”人设（在 qwen-audio config 加载前设置）。
+// 见 docs/02-tech/coordination-model.md。
+process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR = process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR
+  || fileURLToPath(new URL('../config/frontend-prompt', import.meta.url))
 
 /**
  * 根据 harness 配置动态创建 backend：
@@ -54,6 +59,8 @@ async function main() {
   const cfg = loadConfig()
 
   const agent = await buildAgent(cfg)
+  // 动态 import：确保 QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR 在 qwen-audio config 加载前生效
+  const { createGatewayApplication } = await import('qwen-audio-agent/gateway-application')
   const application = createGatewayApplication({
     agent,
     spawnThinkingDescription: buildSpawnThinkingDescription(cfg),
