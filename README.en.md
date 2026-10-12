@@ -4,8 +4,12 @@
 
 [中文](README.md) | English
 
+[![GitHub stars](https://img.shields.io/github/stars/wenliang-xiao/Fugue?style=social)](https://github.com/wenliang-xiao/Fugue/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/wenliang-xiao/Fugue?style=social)](https://github.com/wenliang-xiao/Fugue/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/wenliang-xiao/Fugue)](https://github.com/wenliang-xiao/Fugue/issues)
 [![CI](https://github.com/wenliang-xiao/Fugue/actions/workflows/ci.yml/badge.svg)](https://github.com/wenliang-xiao/Fugue/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/wenliang-xiao/Fugue)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)](https://nodejs.org)
 
 Fugue turns the agent harnesses you already run — OpenCode, Pi, Claude Code, Hermes, and any ACP/A2A-compatible harness — into **one assistant** that you can talk to from anywhere, that keeps working while you chat, and that reports back when it's done.
 
@@ -82,7 +86,7 @@ QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
 ## Test
 
 ```bash
-npm test       # 33 tests (routing / multi-backend / message-bridge / feishu-client)
+npm test       # 35 tests (routing / multi-backend / message-bridge / feishu-client)
 npm run poc    # upstream BackendPort conformance suite
 ```
 
