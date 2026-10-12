@@ -137,16 +137,6 @@ npm run poc    # 上游 BackendPort 一致性套件
 
 ---
 
-## 当前状态
-
-- [x] 竞品调研（cc-connect / ccteam / botmux / Hermes 生态）→ `docs/00-research/`
-- [x] 技术底座验证（qwen-audio-agent 的 BackendPort / Gateway Client Protocol）
-- [x] 治理层 + 四类文档首版落盘（宪法 / vibe-coding / glossary / PRD / 架构 / ADR / review / test）
-- [x] PoC：MultiBackendAdapter 过一致性套件 ✅；Hermes stdio-only 确认 ✅
-- [x] TDD 实现：MultiBackendAdapter + routing + 飞书 client + launcher + config（33 测试全绿）
-- [ ] PRD 与技术方案评审（等用户批注）
-- [ ] 端到端验证：真实 harness（opencode/pi/Hermes）+ 飞书凭据（待用户提供）
-
 ## License
 
 [MIT](LICENSE)
