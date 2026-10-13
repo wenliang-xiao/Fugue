@@ -56,6 +56,9 @@ export async function buildAgent(cfg) {
     router: createRouter({
       defaultBackend: cfg.routing.defaultBackend,
       rules: cfg.routing.rules,
+      experts: Object.fromEntries(
+        Object.entries(cfg.backends || {}).map(([id, spec]) => [id, { label: spec.label }]),
+      ),
     }),
   })
   return createBackendAgentHost(mba)

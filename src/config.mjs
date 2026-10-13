@@ -75,12 +75,13 @@ export function buildSpawnThinkingDescription(cfg) {
   for (const [id, spec] of Object.entries(cfg.backends || {})) {
     const rule = cfg.routing?.rules?.find(r => r.backendId === id)
     const domains = rule?.match?.instruction?.join('、') || '通用'
-    experts.push(`${id}（${spec.label || id}，擅长：${domains}）`)
+    experts.push(`- ${spec.label || id}（${id}）：擅长 ${domains}`)
   }
-  const expertList = experts.join('；')
+  const expertList = experts.join('\n')
   return [
     '调用后台领域专家访问或操作用户环境、设备、文件、屏幕、应用和代码，进行媒体创作、持续执行和制作交付物。',
-    `你是多专家团队的总指挥，团队：${expertList}。`,
+    `你是多专家团队的总指挥。团队成员：\n${expertList}`,
+    '委派任务时，根据专家擅长选择最合适的人，并在 objective 开头明确写出“交给 <专家>”（如“交给 pi：帮我写周报”）。',
     '委派后根据结果自动判断：正确则自然汇总汇报；不对则带着纠正重新委派；需要换专家则改派给更合适的专家。',
     '仅在涉及权限确认、不可逆操作或方向性选择时才询问用户，其余自动继续推进，直到任务完成。',
   ].join('')

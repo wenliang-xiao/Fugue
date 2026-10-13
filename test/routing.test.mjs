@@ -77,3 +77,44 @@ test('领域专家路由：财经→hermes，调研→dsh，其余→默认 pi',
   assert.equal(route({ instruction: '做个行业深度调研' }), 'dsh')
   assert.equal(route({ instruction: '帮我写个周报' }), 'pi')
 })
+
+test('objective 里“交给 pi”显式路由到 pi（前台指定）', () => {
+  const route = createRouter({
+    defaultBackend: 'opencode',
+    experts: { pi: { label: 'Pi' }, dsh: { label: 'DeepSeek' } },
+  })
+  assert.equal(route({ instruction: '交给 pi：帮我写周报' }), 'pi')
+})
+
+test('objective 里“让 DeepSeek 调研”路由到 dsh（按 label）', () => {
+  const route = createRouter({
+    defaultBackend: 'opencode',
+    experts: { pi: { label: 'Pi' }, dsh: { label: 'DeepSeek' } },
+  })
+  assert.equal(route({ instruction: '让 DeepSeek 深度调研一下行业' }), 'dsh')
+})
+
+test('显式 routing.backendId 优先于“交给 XX”', () => {
+  const route = createRouter({
+    defaultBackend: 'opencode',
+    experts: { pi: { label: 'Pi' } },
+  })
+  assert.equal(route({ routing: { backendId: 'dsh' }, instruction: '交给 pi' }), 'dsh')
+})
+
+test('没有“交给 XX”时走关键词规则（fallback）', () => {
+  const route = createRouter({
+    defaultBackend: 'opencode',
+    experts: { pi: { label: 'Pi' } },
+    rules: [{ backendId: 'pi', match: { instruction: ['周报'] } }],
+  })
+  assert.equal(route({ instruction: '帮我写周报' }), 'pi')
+})
+
+test('“交给 未知专家”不命中，回退到默认', () => {
+  const route = createRouter({
+    defaultBackend: 'opencode',
+    experts: { pi: { label: 'Pi' } },
+  })
+  assert.equal(route({ instruction: '交给 未知专家：随便干点啥' }), 'opencode')
+})
