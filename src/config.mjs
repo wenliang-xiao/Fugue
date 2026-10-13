@@ -48,7 +48,9 @@ export function buildHarnessConfig(raw) {
     if (h.protocol) {
       backends[h.id] = { protocol: h.protocol, label: h.label || h.id }
     } else if (h.command) {
+      // type: 'headless' 走一次性进程执行；否则走通用 ACP
       backends[h.id] = {
+        ...(h.type === 'headless' ? { headless: true } : {}),
         command: h.command,
         args: Array.isArray(h.args) ? h.args : [],
         label: h.label || h.id,

@@ -7,6 +7,7 @@ import { createRouter } from './backend/routing.mjs'
 import {
   createHarnessBackend,
 } from './backend/backends/harness-backend.mjs'
+import { HeadlessBackend } from './backend/backends/headless-backend.mjs'
 import { loadConfig, buildSpawnThinkingDescription } from './config.mjs'
 import { FeishuClient } from './clients/feishu/client.mjs'
 import { createLarkConnection } from './clients/feishu/lark-connection.mjs'
@@ -18,13 +19,18 @@ process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR = process.env.QWEN_AUDIO_AGENT_
 
 /**
  * 根据 harness 配置动态创建 backend：
+ * - spec.headless：一次性进程执行（如 dsh --profile headless）
  * - spec.protocol：内置协议（pi/opencode/deepseek/...）
  * - spec.command + args：任意 ACP harness（走 generic-acp）
  */
 export async function buildBackends(cfg) {
   const backends = {}
   for (const [id, spec] of Object.entries(cfg.backends || {})) {
-    if (spec.protocol) {
+    if (spec.headless) {
+      backends[id] = new HeadlessBackend({
+        id, command: spec.command, args: spec.args, label: spec.label,
+      })
+    } else if (spec.protocol) {
       backends[id] = await createHarnessBackend({
         protocol: spec.protocol,
         label: spec.label,

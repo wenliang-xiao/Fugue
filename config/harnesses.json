@@ -12,6 +12,14 @@
       "label": "OpenCode · 代码",
       "protocol": "opencode",
       "domains": ["写代码", "修bug", "重构", "实现"]
+    },
+    {
+      "id": "dsh",
+      "label": "DeepSeek · 深度调研",
+      "type": "headless",
+      "command": "dsh",
+      "args": ["--profile", "headless"],
+      "domains": ["深度调研", "research", "长程", "综述", "行业研究"]
     }
   ]
 }
