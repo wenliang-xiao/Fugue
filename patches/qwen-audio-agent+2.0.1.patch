@@ -1,0 +1,17 @@
+diff --git a/node_modules/qwen-audio-agent/server/src/voice/providers/doubao-seeduplex-protocol.mjs b/node_modules/qwen-audio-agent/server/src/voice/providers/doubao-seeduplex-protocol.mjs
+index 029d2cc..fbbbd76 100644
+--- a/node_modules/qwen-audio-agent/server/src/voice/providers/doubao-seeduplex-protocol.mjs
++++ b/node_modules/qwen-audio-agent/server/src/voice/providers/doubao-seeduplex-protocol.mjs
+@@ -180,6 +180,12 @@ export function createDoubaoSeeduplexProtocol() {
+ 
+     normalizeIncoming(event) {
+       if (event?.type === 'error') return event
++      // Seeduplex 用 conversation.item.input_audio_transcription.started 表示
++      // 用户开始说话；qwen 的打断监听 input_audio_buffer.speech_started。
++      // 映射它，用户开口才能触发 barge-in（否则打断永远不生效）。
++      if (event?.type === 'conversation.item.input_audio_transcription.started') {
++        return { ...event, type: 'input_audio_buffer.speech_started' }
++      }
+       if (event?.type === 'response.canceled') {
+         return normalizeResponseEvent({
+           ...event,
