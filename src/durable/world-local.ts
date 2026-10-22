@@ -35,6 +35,16 @@ export function createLocalWorld(): TaskWorld {
 
     async setRunStatus(runId, status) {
       statuses.set(runId, status)
+      // 同时写状态事件到日志，让 fold 和 index 一致
+      const eventType = {
+        pending: 'run_created', running: 'run_started', completed: 'run_completed',
+        failed: 'run_failed', cancelled: 'run_cancelled',
+      }[status]
+      if (eventType) {
+        const list = logs.get(runId) ?? []
+        list.push({ type: eventType, at: Date.now() })
+        logs.set(runId, list)
+      }
     },
 
     async send(runId, payload) {

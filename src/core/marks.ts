@@ -40,22 +40,25 @@ export interface Mark {
 
 const PROCESS_ID = `pid_${process.pid}_${Math.random().toString(36).slice(2, 8)}`
 
-/** 写一个 timing mark 到 run 的 live 流。fire-and-forget，绝不抛出。 */
+/** 写一个 timing mark 到 run 的 live 流（实时订阅者）+ 落盘（日志，供 inspect 事后查看）。fire-and-forget，绝不抛出。 */
 export function mark(
   world: TaskWorld,
   runId: string,
   name: MarkName,
   fields: Partial<Omit<Mark, 'type' | 'name' | 't' | 'pid' | 'runId'>> = {},
 ): void {
+  const m = {
+    type: 'mark',
+    name,
+    t: Date.now(),
+    pid: PROCESS_ID,
+    runId,
+    ...fields,
+  } satisfies Mark
   try {
-    world.publish(runId, {
-      type: 'mark',
-      name,
-      t: Date.now(),
-      pid: PROCESS_ID,
-      runId,
-      ...fields,
-    } satisfies Mark)
+    world.publish(runId, m)
+    // 落盘：fire-and-forget，mark 失败绝不破坏被记录的操作
+    void world.append(runId, { type: 'mark', data: m, at: m.t }).catch(() => {})
   } catch {
     // marks 失败绝不破坏被记录的操作
   }

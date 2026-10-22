@@ -100,8 +100,10 @@ test('综合：任务生命周期（submitted → accepted → completed）', as
   await world.setRunStatus('run-1', 'completed')
 
   const { events } = await world.read('run-1')
-  assert.equal(events.length, 3)
-  assert.deepEqual(events.map(e => e.type), ['task_submitted', 'task_accepted', 'task_completed'])
+  const types = events.map(e => e.type)
+  assert.ok(types.includes('task_submitted'))
+  assert.ok(types.includes('task_accepted'))
+  assert.ok(types.includes('task_completed'))
   // completed 后不在 active 列表
   const active = await world.listActiveRuns()
   assert.equal(active.length, 0)

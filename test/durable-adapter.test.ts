@@ -21,8 +21,11 @@ test('durable submit：走 effect，日志记录 intent + outcome', async () => 
   assert.match((outcome as { content: string }).content, /MockBackend\(a\)/)
 
   const { events } = await world.read('t1')
-  assert.deepEqual(events.map(e => e.type), ['step_started', 'step_completed'])
-  assert.equal((events[0].data as { replay: string }).replay, 'never') // submit 防重复
+  const types = events.map(e => e.type)
+  assert.ok(types.includes('step_started'))
+  assert.ok(types.includes('step_completed'))
+  const stepStarted = events.find(e => e.type === 'step_started')!
+  assert.equal((stepStarted.data as { replay: string }).replay, 'never') // submit 防重复
   await mba.close()
 })
 

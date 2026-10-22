@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "poc": "node poc/run-conformance.mjs",
-    "start": "tsx src/launcher.ts"
+    "start": "tsx src/launcher.ts",
+    "inspect": "tsx src/inspect.ts"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.74.0",

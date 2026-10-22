@@ -26,9 +26,10 @@ test('首次执行：写 intent → 跑 fn → 写 outcome', async () => {
   })
   assert.equal(output, 'done')
   assert.equal(calls, 1)
-  // 日志有 intent + outcome
-  const { events } = await c.world.read('run-1')
-  assert.deepEqual(events.map(e => e.type), ['step_started', 'step_completed'])
+  // 日志有 intent + outcome（mark 穿插其间）
+  const types = (await c.world.read('run-1')).events.map(e => e.type)
+  assert.ok(types.includes('step_started'))
+  assert.ok(types.includes('step_completed'))
 })
 
 test('completed 回放：不重跑 fn，返回缓存 output', async () => {
