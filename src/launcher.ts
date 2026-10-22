@@ -1,6 +1,7 @@
 // Fugue 启动入口：组装 MultiBackendAdapter + Gateway + 飞书 client。
 // 对应 REQ-002/003/004/005/007。
 import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { createBackendAgentHost } from 'qwen-audio-agent/backend-adapter-sdk'
 import type { BackendPort } from './types/qwen-audio-agent/backend-adapter-sdk'
 import { MultiBackendAdapter } from './backend/multi-backend-adapter'
@@ -10,6 +11,7 @@ import { HeadlessBackend } from './backend/backends/headless-backend'
 import { loadConfig, buildSpawnThinkingDescription, type FugueConfig, type BackendSpec } from './config'
 import { FeishuClient } from './clients/feishu/client'
 import { createLarkConnection } from './clients/feishu/lark-connection'
+import { createFileWorld } from './durable/world-file'
 
 // 前台提示词目录：Fugue 自定义"总指挥"人设（在 qwen-audio config 加载前设置）。
 // 见 docs/02-tech/coordination-model.md。
@@ -59,7 +61,10 @@ export async function buildAgent(cfg: FugueConfig): Promise<Record<string, unkno
         Object.entries(cfg.backends || {}).map(([id, spec]) => [id, { label: spec.label }]),
       ),
     }),
+    // 个人助手本地真实跑：任务状态持久化到本地文件，崩溃后重启可从日志恢复
+    world: createFileWorld(resolve(process.cwd(), 'data', 'tasks')),
   })
+  await mba.rebuildTaskMap() // 重启恢复：从日志重建进行中任务的索引
   return createBackendAgentHost(mba)
 }
 
