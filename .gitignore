@@ -13,6 +13,7 @@ config/.env
 .opencode/
 .trellis/
 .claude/
+.archify/
 .github/prompts/
 .github/skills/
 
