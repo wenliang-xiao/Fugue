@@ -1,7 +1,7 @@
 // harness 注册表测试：配置驱动的通用接入 + 领域路由自动生成
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import { buildHarnessConfig, buildSpawnThinkingDescription } from '../src/config.mjs'
+import { buildHarnessConfig, buildSpawnThinkingDescription } from '../src/config'
 
 const sample = {
   harnesses: [

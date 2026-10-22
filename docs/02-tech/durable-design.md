@@ -178,3 +178,59 @@ await ctx.effect(key, opts, fn)
 | harness 角色 | 被 durable 化的对象 | **不可靠子进程**，崩溃即重启 |
 | 复用关系 | 全套（World/fold/effect/anchor） | 借鉴设计、裁剪实现，不 fork |
 | 底座 | Vercel/Workflow SDK | qwen-audio-agent + 本地优先 |
+
+---
+
+## 9. agent 矩阵演进（愿景与差距）
+
+> 本节回答「这套设计能否实现真正的 agent 矩阵」，明确**现在能覆盖什么 / 还缺什么 / 演进路线**。诚实原则：本文是 durable 化的「地基」，不是矩阵本身。
+
+### 9.1 现状 vs 矩阵愿景
+
+| 诉求 | 现状 | 本方案覆盖 | 结论 |
+|------|------|-----------|------|
+| agent 不会死 | ❌ 子进程死即丢状态 | ✅ durable 化核心 | ⚠️ 见 9.2 澄清 |
+| 统一层编排 | ✅ MultiBackendAdapter + 总指挥 | ✅ 强化（taskMap 从日志 fold 重建） | ✅ 成立 |
+| 语音全双工 | ✅ 豆包 Seeduplex | ⚠️ 正交，本方案不管这层 | ✅ 已有，与 durable 化是两层 |
+| 长程任务派发 | ⚠️ 能跑但崩溃即断 | ✅ 核心价值所在 | ✅ 成立（见 9.3） |
+| agent 矩阵 | ⚠️ 串行委派 + 总指挥居中 | ⚠️ 只打地基 | ❌ 还缺 5 块（见 9.4） |
+
+### 9.2 「不会死」的正确语义
+
+durable-harness 自身也不是「让进程不死」，而是「**进程死了无所谓，session 状态从日志复活，换个进程接着跑**」。落到 Fugue 各 agent：
+
+| agent | 可行性 | 落地方式 |
+|-------|--------|---------|
+| pi | ✅ 最可行 | Pi 1.0 自带 `@earendil-works/pi-durable` durable storage，storage swap + resumeWith |
+| opencode | ✅ 可行 | event store 镜像进日志 |
+| hermes | ⚠️ 依赖远端 | 它是云端常驻进程，Fugue 只管连接 + 任务状态持久化 |
+| dsh headless | ✅ 无所谓死 | 一次性任务，跑完即弃 |
+
+### 9.3 「长程」分两种
+
+- **任务跑几小时、跨崩溃**：✅ 本方案直接解决（queue backstop + 日志续跑）。
+- **跨天定时派发 / cron 调度**：❌ 当前没有（Hermes 自带 cron，Fugue 未接），P2+ 缺口。
+
+### 9.4 矩阵还缺的 5 块拼图
+
+当前方案是「一个总指挥 → 逐个专家委派」的**星型拓扑**。真正的矩阵（横向协作、并行、共享记忆）还需要：
+
+1. **横向协作**：专家间直接互相派活/传递产出。现在是总指挥居中（Pi 不支持 third-layer delegation，ADR-0009 约束）；矩阵若需 agent↔agent，要么等上游，要么做「黑板/共享状态」模式替代。
+2. **并行 fan-out**：一个任务同时派多个 agent、交叉 review（ccteam 已有）。Fugue 现在串行。
+3. **跨 agent 共享记忆**：durable-harness 的 documents 机制提供会话级共享状态，但「专家 A 产出 → 专家 B 输入」的共享语义未设计（当前仅 Gateway 层 taskMap）。
+4. **任务调度器**：优先级、定时、任务队列持久化。
+5. **成本账本 + 权限矩阵**：多 agent 并行时的成本控制、各自权限边界、不可逆操作审批。
+
+### 9.5 演进路线
+
+```
+P0：durable 地基（本方案 6 切片）
+  ↓
+P1：pi/opencode 真正接 durable storage（「agent 不会死」落地）
+  ↓
+P2：documents 共享记忆 + 并行 fan-out（矩阵雏形）
+  ↓
+P3：专家横向协作 / 调度器 / 成本账本（真矩阵）
+```
+
+**判断**：当前设计能让「多 agent 编排」稳定、可恢复、可长跑——这是 80% 的工程难度，也是 ccteam/cc-connect 等竞品没做扎实的地方；剩下 20%（横向协作、并行、共享记忆）是「矩阵」区别于「多 agent 串行」的增量，在 durable 地基上继续演进。

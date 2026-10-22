@@ -2,23 +2,41 @@
 // 不依赖飞书 SDK 与 Gateway 连接，可独立单测。
 // 对应 REQ-002。
 
-function clean(value) {
+function clean(value: unknown): string {
   return String(value || '').trim()
 }
 
 /** 飞书文本消息 → Gateway 输入事件 */
-export function feishuTextToGatewayInput(text) {
+export function feishuTextToGatewayInput(
+  text: string,
+): { type: string; text: string; textOnly: boolean } | null {
   const value = clean(text)
   if (!value) return null
   return { type: 'input.message', text: value, textOnly: true }
 }
 
+export interface FeishuEvent {
+  type: string
+  role?: string
+  content?: string
+  message?: string
+  task?: {
+    id?: string
+    objective?: string
+    result?: string
+    error?: string
+    authorization?: { id?: string; summary?: string; operation?: { title?: string } }
+    inputRequest?: { id?: string; prompt?: string; mode?: string }
+  }
+  permission?: { id?: string; summary?: string; operation?: { title?: string } }
+}
+
 /** Gateway 事件 → 飞书文本消息（返回 null 表示不发） */
-export function gatewayEventToFeishu(event = {}) {
+export function gatewayEventToFeishu(event: FeishuEvent = { type: '' }): { text: string } | null {
   switch (event.type) {
     case 'transcript.final':
       if (event.role === 'assistant' && clean(event.content)) {
-        return { text: event.content }
+        return { text: event.content! }
       }
       return null
 
@@ -52,25 +70,25 @@ export function gatewayEventToFeishu(event = {}) {
   }
 }
 
-function objective(event) {
+function objective(event: FeishuEvent): string {
   return clean(event.task?.objective) || '(未命名任务)'
 }
 
-function resultLine(event) {
+function resultLine(event: FeishuEvent): string {
   const result = clean(event.task?.result)
   return result ? `\n${result}` : ''
 }
 
-function errorLine(event) {
+function errorLine(event: FeishuEvent): string {
   const error = clean(event.task?.error)
   return error ? `\n原因：${error}` : ''
 }
 
-function permissionSummary(event) {
+function permissionSummary(event: FeishuEvent): string {
   const auth = event.task?.authorization || event.permission
   return clean(auth?.summary) || clean(auth?.operation?.title) || '(需要确认操作)'
 }
 
-function inputPrompt(event) {
+function inputPrompt(event: FeishuEvent): string {
   return clean(event.task?.inputRequest?.prompt) || '(请补充信息)'
 }

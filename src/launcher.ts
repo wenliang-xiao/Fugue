@@ -2,17 +2,16 @@
 // 对应 REQ-002/003/004/005/007。
 import { fileURLToPath } from 'node:url'
 import { createBackendAgentHost } from 'qwen-audio-agent/backend-adapter-sdk'
-import { MultiBackendAdapter } from './backend/multi-backend-adapter.mjs'
-import { createRouter } from './backend/routing.mjs'
-import {
-  createHarnessBackend,
-} from './backend/backends/harness-backend.mjs'
-import { HeadlessBackend } from './backend/backends/headless-backend.mjs'
-import { loadConfig, buildSpawnThinkingDescription } from './config.mjs'
-import { FeishuClient } from './clients/feishu/client.mjs'
-import { createLarkConnection } from './clients/feishu/lark-connection.mjs'
+import type { BackendPort } from './types/qwen-audio-agent/backend-adapter-sdk'
+import { MultiBackendAdapter } from './backend/multi-backend-adapter'
+import { createRouter } from './backend/routing'
+import { createHarnessBackend } from './backend/backends/harness-backend'
+import { HeadlessBackend } from './backend/backends/headless-backend'
+import { loadConfig, buildSpawnThinkingDescription, type FugueConfig, type BackendSpec } from './config'
+import { FeishuClient } from './clients/feishu/client'
+import { createLarkConnection } from './clients/feishu/lark-connection'
 
-// 前台提示词目录：Fugue 自定义“总指挥”人设（在 qwen-audio config 加载前设置）。
+// 前台提示词目录：Fugue 自定义"总指挥"人设（在 qwen-audio config 加载前设置）。
 // 见 docs/02-tech/coordination-model.md。
 process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR = process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR
   || fileURLToPath(new URL('../config/frontend-prompt', import.meta.url))
@@ -23,12 +22,12 @@ process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR = process.env.QWEN_AUDIO_AGENT_
  * - spec.protocol：内置协议（pi/opencode/deepseek/...）
  * - spec.command + args：任意 ACP harness（走 generic-acp）
  */
-export async function buildBackends(cfg) {
-  const backends = {}
+export async function buildBackends(cfg: FugueConfig): Promise<Record<string, BackendPort>> {
+  const backends: Record<string, BackendPort> = {}
   for (const [id, spec] of Object.entries(cfg.backends || {})) {
     if (spec.headless) {
       backends[id] = new HeadlessBackend({
-        id, command: spec.command, args: spec.args, label: spec.label,
+        id, command: spec.command!, args: spec.args, label: spec.label,
       })
     } else if (spec.protocol) {
       backends[id] = await createHarnessBackend({
@@ -47,7 +46,7 @@ export async function buildBackends(cfg) {
   return backends
 }
 
-export async function buildAgent(cfg) {
+export async function buildAgent(cfg: FugueConfig): Promise<Record<string, unknown>> {
   const backends = await buildBackends(cfg)
   if (Object.keys(backends).length === 0) {
     throw new Error('没有可用的后台 harness，请检查 config/harnesses.json')
@@ -64,7 +63,7 @@ export async function buildAgent(cfg) {
   return createBackendAgentHost(mba)
 }
 
-async function main() {
+async function main(): Promise<void> {
   const cfg = loadConfig()
 
   const agent = await buildAgent(cfg)
@@ -75,7 +74,7 @@ async function main() {
     spawnThinkingDescription: buildSpawnThinkingDescription(cfg),
   })
 
-  let feishuClient = null
+  let feishuClient: FeishuClient | null = null
   if (cfg.feishu.enabled) {
     if (!cfg.feishu.appId || !cfg.feishu.appSecret) {
       console.error('[fugue] 飞书已启用但缺少 appId/appSecret')
@@ -92,7 +91,7 @@ async function main() {
     }
   }
 
-  const shutdown = async () => {
+  const shutdown = async (): Promise<void> => {
     await feishuClient?.stop()
     await application.close()
     process.exit(0)
@@ -102,7 +101,7 @@ async function main() {
 }
 
 if (import.meta.url === new URL(`file://${process.argv[1] || ''}`).href
-  || process.argv[1]?.endsWith('launcher.mjs')) {
+  || process.argv[1]?.endsWith('launcher.ts')) {
   main().catch(error => {
     console.error('[fugue] 启动失败:', error)
     process.exit(1)

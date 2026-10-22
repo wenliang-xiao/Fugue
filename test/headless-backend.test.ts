@@ -1,7 +1,7 @@
 // REQ-005：HeadlessBackend 单元测试（一次性进程执行）
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import { HeadlessBackend } from '../src/backend/backends/headless-backend.mjs'
+import { HeadlessBackend } from '../src/backend/backends/headless-backend'
 
 test('submit：spawn 命令并返回 stdout 作为 content', async () => {
   const backend = new HeadlessBackend({ id: 'echo', command: 'echo' })

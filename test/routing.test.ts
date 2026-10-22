@@ -1,8 +1,8 @@
 // REQ-005 多 harness 委派：路由规则单元测试
 // 验证：显式指定 > 规则匹配 > 默认 backend 的优先级
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import { createRouter } from '../src/backend/routing.mjs'
+import { createRouter } from '../src/backend/routing'
 
 test('显式指定 routing.backendId 优先级最高', () => {
   const route = createRouter({

@@ -1,15 +1,40 @@
 // 路由：显式 routing.backendId > 前台指定（"交给 XX"）> 关键词规则 > 默认 backend
 // 对应 ADR-0002、REQ-005。纯函数，无副作用。
 
-/**
- * @param {object} options
- * @param {string} [options.defaultBackend] 默认 backend id
- * @param {Array<{backendId: string, match: object}>} [options.rules] 规则列表（按序命中第一条）
- * @param {Record<string, {label?: string, aliases?: string[]}>} [options.experts] 专家名映射，用于解析 objective 里的"交给 XX"
- * @returns {(task: object) => string} 路由函数，返回 backend id
- */
-export function createRouter({ defaultBackend = '', rules = [], experts = {} } = {}) {
-  return function route(task) {
+/** 路由输入：Gateway 下发的 task（路由只读 instruction/objective/message/taskType/routing）。 */
+export interface RouteInput {
+  routing?: { backendId?: string }
+  instruction?: string
+  objective?: string
+  message?: string
+  taskType?: string
+}
+
+/** 专家名映射：用于解析 objective 里的"交给 XX"。 */
+export interface ExpertSpec {
+  label?: string
+  aliases?: string[]
+}
+
+export interface RouteRule {
+  backendId: string
+  match: {
+    instruction?: string | string[] | RegExp
+    taskType?: string
+  }
+}
+
+export interface RouterOptions {
+  defaultBackend?: string
+  rules?: RouteRule[]
+  experts?: Record<string, ExpertSpec>
+}
+
+export type Router = (task: RouteInput) => string
+
+export function createRouter(options: RouterOptions = {}): Router {
+  const { defaultBackend = '', rules = [], experts = {} } = options
+  return function route(task: RouteInput): string {
     const explicit = task?.routing?.backendId
     if (explicit) return String(explicit)
     const named = matchExpert(taskInstruction(task), experts)
@@ -22,7 +47,7 @@ export function createRouter({ defaultBackend = '', rules = [], experts = {} } =
 }
 
 /** 解析 objective 里的"交给 XX"或"让 XX"，匹配专家 id/label/别名 */
-function matchExpert(instruction, experts) {
+function matchExpert(instruction: string, experts: Record<string, ExpertSpec>): string | null {
   if (!experts || Object.keys(experts).length === 0) return null
   const m = instruction.match(/交给\s*([A-Za-z][A-Za-z0-9]*)/i)
     || instruction.match(/让\s*([A-Za-z][A-Za-z0-9]*)/i)
@@ -36,7 +61,7 @@ function matchExpert(instruction, experts) {
   return null
 }
 
-function matchRule(rule, task) {
+function matchRule(rule: RouteRule, task: RouteInput): boolean {
   const match = rule?.match || {}
   if (match.instruction != null && matchesText(match.instruction, taskInstruction(task))) {
     return true
@@ -47,11 +72,11 @@ function matchRule(rule, task) {
   return false
 }
 
-function taskInstruction(task) {
+function taskInstruction(task: RouteInput): string {
   return String(task?.instruction || task?.objective || task?.message || '')
 }
 
-function matchesText(pattern, text) {
+function matchesText(pattern: string | string[] | RegExp, text: string): boolean {
   if (pattern instanceof RegExp) return pattern.test(text)
   if (Array.isArray(pattern)) return pattern.some(p => matchesText(p, text))
   return text.includes(String(pattern))

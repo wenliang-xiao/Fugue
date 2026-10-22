@@ -3,21 +3,31 @@
 // 实现 BackendPort 契约；submit 为同步完成语义（提交即执行，无持久 session）。
 // 对应 REQ-005，设计见 docs/02-tech/harness-registry.md。
 import { spawn } from 'node:child_process'
+import type { BackendPort, BackendTask } from '../../types/qwen-audio-agent/backend-adapter-sdk'
 
-function clean(value) {
+function clean(value: unknown): string {
   return String(value || '').trim()
 }
 
-export class HeadlessBackend {
-  /**
-   * @param {object} options
-   * @param {string} options.id
-   * @param {string} options.command 启动命令（如 'dsh'）
-   * @param {string[]} [options.args] 启动参数（如 ['--profile', 'headless']）
-   * @param {string} [options.label] 显示名
-   * @param {object} [options.env] 额外环境变量
-   */
-  constructor({ id, command, args = [], label, env = {} } = {}) {
+export interface HeadlessBackendOptions {
+  id: string
+  command: string
+  args?: string[]
+  label?: string
+  env?: Record<string, string>
+}
+
+export class HeadlessBackend implements BackendPort {
+  readonly id: string
+  readonly command: string
+  readonly args: string[]
+  readonly label: string
+  readonly env: Record<string, string>
+  ready = false
+  closed = false
+
+  constructor(options: HeadlessBackendOptions) {
+    const { id, command, args = [], label, env = {} } = options
     if (!id) throw new TypeError('HeadlessBackend requires id')
     if (!command) throw new TypeError('HeadlessBackend requires command')
     this.id = id
@@ -25,11 +35,9 @@ export class HeadlessBackend {
     this.args = Array.isArray(args) ? args : []
     this.label = label || id
     this.env = env
-    this.ready = false
-    this.closed = false
   }
 
-  describe() {
+  describe(): Record<string, unknown> {
     return {
       label: this.label,
       protocol: 'headless',
@@ -37,16 +45,16 @@ export class HeadlessBackend {
     }
   }
 
-  async start() {
+  async start(): Promise<{ ok: boolean }> {
     this.ready = true
     return { ok: true }
   }
 
-  async health() {
+  async health(): Promise<{ ok: boolean }> {
     return { ok: this.ready && !this.closed }
   }
 
-  async submit(work) {
+  async submit(work: BackendTask): Promise<{ content: string; artifacts: unknown[] }> {
     const instruction = clean(work?.instruction || work?.objective || work?.message)
     if (!clean(work?.id) || !clean(work?.ownerId) || !instruction) {
       throw new Error('requires task id, owner and input')
@@ -55,7 +63,7 @@ export class HeadlessBackend {
     return { content, artifacts: [] }
   }
 
-  status(taskId) {
+  status(taskId?: string): Record<string, unknown> {
     if (!clean(taskId)) {
       return { ok: this.ready && !this.closed, status: this.ready ? 'ready' : 'stopped', protocol: 'headless' }
     }
@@ -63,28 +71,28 @@ export class HeadlessBackend {
     return { taskId, state: 'not_found', activity: [] }
   }
 
-  async cancel(taskId) {
+  async cancel(taskId: string): Promise<{ taskId: string; state: string }> {
     return { taskId: clean(taskId), state: 'not_found' }
   }
 
-  async respondAuthorization() {
+  async respondAuthorization(): Promise<never> {
     throw new Error('headless backend does not support authorization')
   }
 
-  async respondInput() {
+  async respondInput(): Promise<never> {
     throw new Error('headless backend does not support input')
   }
 
-  subscribe() {
+  subscribe(): () => void {
     return () => {}
   }
 
-  async close() {
+  async close(): Promise<void> {
     this.closed = true
     this.ready = false
   }
 
-  _run(instruction) {
+  _run(instruction: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const child = spawn(this.command, [...this.args, instruction], {
         env: { ...process.env, ...this.env },
@@ -92,8 +100,8 @@ export class HeadlessBackend {
       })
       let out = ''
       let err = ''
-      child.stdout.on('data', d => { out += d })
-      child.stderr.on('data', d => { err += d })
+      child.stdout.on('data', (d: Buffer) => { out += d })
+      child.stderr.on('data', (d: Buffer) => { err += d })
       child.on('error', error => reject(error))
       child.on('close', code => {
         if (code === 0) resolve(out.trim())

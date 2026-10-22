@@ -1,20 +1,36 @@
 // REQ-002 / REQ-003：飞书 client 核心桥接逻辑测试（mock connection + mock gateway）
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import { FeishuClient, gatewayWebSocketUrl } from '../src/clients/feishu/client.mjs'
+import { FeishuClient, gatewayWebSocketUrl, type LarkConnection } from '../src/clients/feishu/client'
 import { GatewayClientProtocolEvent } from 'qwen-audio-agent/gateway-client-protocol'
+import type { GatewayClient } from '../src/types/qwen-audio-agent/gateway-client-sdk'
+
+interface GatewayCalls {
+  sent: Array<Record<string, unknown>>
+  requests: Array<{ type: string; payload: Record<string, unknown> }>
+  started: boolean
+}
+
+interface FeishuSpy {
+  sent: Array<{ to: string; text: string }>
+  handlers: {
+    message?: (msg: Record<string, unknown>) => void
+    error?: (err: unknown) => void
+  }
+}
 
 function makeHarness() {
-  const gatewayCalls = { sent: [], requests: [], started: false }
+  const gatewayCalls: GatewayCalls = { sent: [], requests: [], started: false }
   const gateway = {
     ready: true,
+    stopped: false,
     start() { gatewayCalls.started = true },
-    send(event) { gatewayCalls.sent.push(event) },
-    async request(type, payload) { gatewayCalls.requests.push({ type, payload }) },
+    send(event: Record<string, unknown>) { gatewayCalls.sent.push(event) },
+    async request(type: string, payload: Record<string, unknown>) { gatewayCalls.requests.push({ type, payload }) },
     stop() {},
   }
-  const feishu = { sent: [], handlers: {} }
-  const connection = {
+  const feishu: FeishuSpy = { sent: [], handlers: {} }
+  const connection: LarkConnection = {
     connect: async () => {},
     onMessage: h => { feishu.handlers.message = h },
     onError: h => { feishu.handlers.error = h },
@@ -24,7 +40,7 @@ function makeHarness() {
   const client = new FeishuClient({
     gatewayUrl: 'http://127.0.0.1:3101',
     connection,
-    gatewayFactory: () => gateway,
+    gatewayFactory: () => gateway as unknown as GatewayClient,
   })
   return { client, gateway, gatewayCalls, connection, feishu }
 }
@@ -67,7 +83,7 @@ test('权限请求后回复「同意」→ permission.respond decision=task', as
   })
   await client.handleFeishuMessage({ rawContentType: 'text', chatId: 'chat-1', content: '同意' })
   const req = gatewayCalls.requests.find(r => r.type === GatewayClientProtocolEvent.PERMISSION_RESPOND)
-  assert.deepEqual(req.payload, { permission_id: 'auth-1', decision: 'task' })
+  assert.deepEqual(req!.payload, { permission_id: 'auth-1', decision: 'task' })
 })
 
 test('权限请求后回复「拒绝」→ decision=reject', async () => {
@@ -79,7 +95,7 @@ test('权限请求后回复「拒绝」→ decision=reject', async () => {
   })
   await client.handleFeishuMessage({ rawContentType: 'text', chatId: 'chat-1', content: '拒绝' })
   const req = gatewayCalls.requests.find(r => r.type === GatewayClientProtocolEvent.PERMISSION_RESPOND)
-  assert.deepEqual(req.payload, { permission_id: 'auth-1', decision: 'reject' })
+  assert.deepEqual(req!.payload, { permission_id: 'auth-1', decision: 'reject' })
 })
 
 test('gateway 回复转发到飞书（有 chatId 时）', async () => {

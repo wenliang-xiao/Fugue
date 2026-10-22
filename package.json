@@ -9,13 +9,22 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test 'test/*.test.mjs'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "poc": "node poc/run-conformance.mjs",
-    "start": "node src/launcher.mjs"
+    "start": "tsx src/launcher.ts"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.74.0",
     "qwen-audio-agent": "^2.0.1",
     "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

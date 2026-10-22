@@ -4,14 +4,14 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-function truthy(value) {
+function truthy(value: unknown): boolean {
   return ['1', 'true', 'yes', 'on', 'enabled'].includes(String(value).trim().toLowerCase())
 }
 
-function loadEnvFile() {
+function loadEnvFile(): Record<string, string> {
   const file = resolve(process.cwd(), 'config', 'config.env')
   if (!existsSync(file)) return {}
-  const merged = {}
+  const merged: Record<string, string> = {}
   for (const line of readFileSync(file, 'utf-8').split('\n')) {
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('#')) continue
@@ -21,12 +21,42 @@ function loadEnvFile() {
   return merged
 }
 
+export interface HarnessSpec {
+  id: string
+  protocol?: string
+  command?: string
+  args?: string[]
+  label?: string
+  type?: string
+  default?: boolean
+  domains?: string[]
+  [key: string]: unknown
+}
+
+export interface HarnessFile {
+  harnesses: HarnessSpec[]
+}
+
+export interface BackendSpec {
+  protocol?: string
+  label?: string
+  headless?: boolean
+  command?: string
+  args?: string[]
+}
+
+export interface BuildHarnessConfig {
+  backends: Record<string, BackendSpec>
+  rules: Array<{ backendId: string; match: { instruction: string[] } }>
+  defaultBackend: string
+}
+
 /** 加载 config/harnesses.json；不存在或无内容返回 null */
-export function loadHarnesses(file) {
+export function loadHarnesses(file?: string): HarnessFile | null {
   const path = file || resolve(process.cwd(), 'config', 'harnesses.json')
   if (!existsSync(path)) return null
   try {
-    const data = JSON.parse(readFileSync(path, 'utf-8'))
+    const data = JSON.parse(readFileSync(path, 'utf-8')) as HarnessFile
     return Array.isArray(data?.harnesses) && data.harnesses.length ? data : null
   } catch {
     return null
@@ -35,13 +65,11 @@ export function loadHarnesses(file) {
 
 /**
  * 从 harnesses 配置生成 backends + 路由规则。
- * @param {{harnesses: Array}} raw
- * @returns {{backends: object, rules: Array, defaultBackend: string}}
  */
-export function buildHarnessConfig(raw) {
+export function buildHarnessConfig(raw: Partial<HarnessFile> | null): BuildHarnessConfig {
   const harnesses = raw?.harnesses || []
-  const backends = {}
-  const rules = []
+  const backends: Record<string, BackendSpec> = {}
+  const rules: BuildHarnessConfig['rules'] = []
   let defaultBackend = ''
   for (const h of harnesses) {
     if (!h?.id) continue
@@ -67,11 +95,14 @@ export function buildHarnessConfig(raw) {
 
 /**
  * 生成总指挥提示词（替换 spawn_thinking 工具的 description）。
- * 从 harnesses 配置动态生成专家列表，注入“自动协调”语义。
+ * 从 harnesses 配置动态生成专家列表，注入"自动协调"语义。
  * 见 docs/02-tech/coordination-model.md。
  */
-export function buildSpawnThinkingDescription(cfg) {
-  const experts = []
+export function buildSpawnThinkingDescription(cfg: {
+  backends: Record<string, BackendSpec>
+  routing?: { rules?: BuildHarnessConfig['rules'] }
+}): string {
+  const experts: string[] = []
   for (const [id, spec] of Object.entries(cfg.backends || {})) {
     const rule = cfg.routing?.rules?.find(r => r.backendId === id)
     const domains = rule?.match?.instruction?.join('、') || '通用'
@@ -81,20 +112,27 @@ export function buildSpawnThinkingDescription(cfg) {
   return [
     '调用后台领域专家访问或操作用户环境、设备、文件、屏幕、应用和代码，进行媒体创作、持续执行和制作交付物。',
     `你是多专家团队的总指挥。团队成员：\n${expertList}`,
-    '委派任务时，根据专家擅长选择最合适的人，并在 objective 开头明确写出“交给 <专家>”（如“交给 pi：帮我写周报”）。',
+    '委派任务时，根据专家擅长选择最合适的人，并在 objective 开头明确写出"交给 <专家>"（如"交给 pi：帮我写周报"）。',
     '委派后根据结果自动判断：正确则自然汇总汇报；不对则带着纠正重新委派；需要换专家则改派给更合适的专家。',
     '仅在涉及权限确认、不可逆操作或方向性选择时才询问用户，其余自动继续推进，直到任务完成。',
   ].join('')
 }
 
-export function loadConfig(env = process.env) {
+export interface FugueConfig {
+  gatewayUrl: string
+  backends: Record<string, BackendSpec>
+  routing: { defaultBackend: string; rules: BuildHarnessConfig['rules'] }
+  feishu: { enabled: boolean; appId: string; appSecret: string }
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): FugueConfig {
   const fileEnv = loadEnvFile()
   const merged = { ...fileEnv, ...env }
 
   const harnesses = loadHarnesses()
-  let backends
-  let rules
-  let defaultBackend
+  let backends: Record<string, BackendSpec>
+  let rules: BuildHarnessConfig['rules']
+  let defaultBackend: string
   if (harnesses) {
     const hc = buildHarnessConfig(harnesses)
     backends = hc.backends

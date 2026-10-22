@@ -5,9 +5,9 @@ import WebSocket from 'ws'
 import { GatewayClient } from 'qwen-audio-agent/gateway-client-sdk'
 import { gatewayReferenceClientCapabilities } from 'qwen-audio-agent/gateway-client-profiles'
 import { GatewayClientProtocolEvent } from 'qwen-audio-agent/gateway-client-protocol'
-import { feishuTextToGatewayInput, gatewayEventToFeishu } from './message-bridge.mjs'
+import { feishuTextToGatewayInput, gatewayEventToFeishu } from './message-bridge'
 
-export function gatewayWebSocketUrl(baseUrl, sessionId) {
+export function gatewayWebSocketUrl(baseUrl: string, sessionId: string): string {
   const url = new URL('/api/realtime', String(baseUrl || '').replace(/\/+$/, ''))
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
   url.searchParams.set('sessionId', sessionId)
@@ -17,17 +17,52 @@ export function gatewayWebSocketUrl(baseUrl, sessionId) {
 const APPROVE_RE = /同意|允许|可以|approve|accept|yes/i
 const REJECT_RE = /拒绝|不行|不可以|deny|reject|no/i
 
+export interface LarkConnection {
+  connect(): Promise<unknown>
+  onMessage(handler: (msg: Record<string, unknown>) => void): void
+  onError(handler: (err: unknown) => void): void
+  sendText(to: string, text: string): Promise<unknown>
+  sendMarkdown(to: string, md: string): Promise<unknown>
+}
+
+export interface FeishuClientOptions {
+  gatewayUrl: string
+  connection: LarkConnection
+  accessToken?: string
+  sessionId?: string
+  takeover?: boolean
+  locale?: string
+  timeZone?: string
+  gatewayFactory?: () => GatewayClient
+}
+
 export class FeishuClient {
-  constructor({
-    gatewayUrl,
-    connection,
-    accessToken = '',
-    sessionId = 'feishu',
-    takeover = false,
-    locale = 'zh-CN',
-    timeZone = 'Asia/Shanghai',
-    gatewayFactory,
-  } = {}) {
+  readonly gatewayUrl: string
+  readonly connection: LarkConnection
+  readonly accessToken: string
+  readonly sessionId: string
+  readonly takeover: boolean
+  readonly locale: string
+  readonly timeZone: string
+  readonly gatewayFactory?: () => GatewayClient
+  gateway: GatewayClient | null = null
+  chatId: string | null = null
+  pendingPermission: { permissionId: string; taskId?: string } | null = null
+  startedResponses = new Set<string>()
+  onStatus?: (status: unknown) => void
+  onError?: (err: unknown) => void
+
+  constructor(options: FeishuClientOptions) {
+    const {
+      gatewayUrl,
+      connection,
+      accessToken = '',
+      sessionId = 'feishu',
+      takeover = false,
+      locale = 'zh-CN',
+      timeZone = 'Asia/Shanghai',
+      gatewayFactory,
+    } = options
     if (!gatewayUrl) throw new TypeError('gatewayUrl is required')
     if (!connection) throw new TypeError('connection is required')
     this.gatewayUrl = gatewayUrl
@@ -38,18 +73,14 @@ export class FeishuClient {
     this.locale = locale
     this.timeZone = timeZone
     this.gatewayFactory = gatewayFactory
-    this.gateway = null
-    this.chatId = null
-    this.pendingPermission = null // { permissionId, taskId }
-    this.startedResponses = new Set() // 已回执 playback 的 responseId
   }
 
-  async start() {
+  async start(): Promise<void> {
     this.gateway = this.gatewayFactory
       ? this.gatewayFactory()
       : new GatewayClient({
         url: gatewayWebSocketUrl(this.gatewayUrl, this.sessionId),
-        createSocket: (url, opts = {}) => new WebSocket(url, { headers: opts.headers }),
+        createSocket: (url, opts = {}) => new WebSocket(url, { headers: opts.headers as Record<string, string> }),
         accessToken: this.accessToken,
         takeover: this.takeover,
         clientType: 'feishu',
@@ -76,13 +107,13 @@ export class FeishuClient {
     await this.connection.connect()
   }
 
-  async stop() {
+  async stop(): Promise<void> {
     this.gateway?.stop()
   }
 
-  async handleFeishuMessage(msg = {}) {
+  async handleFeishuMessage(msg: Record<string, unknown> = {}): Promise<void> {
     if (msg.rawContentType && msg.rawContentType !== 'text') return
-    this.chatId = msg.chatId || this.chatId
+    this.chatId = String(msg.chatId || this.chatId || '')
     const content = String(msg.content || '').trim()
     if (!content) return
 
@@ -96,7 +127,7 @@ export class FeishuClient {
     if (input && this.gateway?.ready) this.gateway.send(input)
   }
 
-  async handleGatewayEvent(event = {}) {
+  async handleGatewayEvent(event: Record<string, unknown> = {}): Promise<void> {
     // text_only client 需回执 playback，Gateway 才下发文本转写（transcript）
     if (event.type === 'audio.delta') {
       const responseId = String(event.responseId || '')
@@ -115,20 +146,21 @@ export class FeishuClient {
       return
     }
     if (event.type === 'task.permission.requested') {
-      const auth = event.task?.authorization || event.permission
+      const task = (event.task || {}) as Record<string, unknown>
+      const auth = (task.authorization || event.permission || {}) as Record<string, unknown>
       if (auth?.id) {
-        this.pendingPermission = { permissionId: auth.id, taskId: event.task?.id }
+        this.pendingPermission = { permissionId: String(auth.id), taskId: String(task.id || '') || undefined }
       }
     }
-    const out = gatewayEventToFeishu(event)
+    const out = gatewayEventToFeishu(event as never)
     if (out && this.chatId) {
       await this.connection.sendText(this.chatId, out.text)
     }
   }
 
-  async #respondPermission(content) {
+  async #respondPermission(content: string): Promise<void> {
     const decision = APPROVE_RE.test(content) ? 'task' : 'reject'
-    const { permissionId } = this.pendingPermission
+    const { permissionId } = this.pendingPermission!
     this.pendingPermission = null
     if (this.gateway?.ready) {
       await this.gateway.request(GatewayClientProtocolEvent.PERMISSION_RESPOND, {
