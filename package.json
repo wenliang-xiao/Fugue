@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "全双工、多端可达、可委派多种 agent harness 的对话编排中枢",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },

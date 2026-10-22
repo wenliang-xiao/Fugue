@@ -101,4 +101,4 @@ P3 📋 专家横向协作 / 调度器 / 成本账本（真矩阵）
 
 ## License
 
-[Apache-2.0](LICENSE)
+[MIT](LICENSE)
