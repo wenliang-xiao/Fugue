@@ -4,6 +4,7 @@
 // 对应 durable-design.md §3、切片 2。
 
 import type { TaskEvent } from './world'
+import type { ProcessIdentity } from './anchor'
 
 export type ReplayPolicy = 'safe' | 'never'
 
@@ -20,6 +21,8 @@ export interface EffectRecord {
   output?: unknown
   error?: { message: string; interrupted?: boolean }
   attempt: number
+  /** 写 intent 的进程身份（anchor 判定用） */
+  anchor?: ProcessIdentity
 }
 
 /** 任务（run）状态：fold 的产物。 */
@@ -53,6 +56,8 @@ interface StepEnvelope {
   name: string
   replay: ReplayPolicy
   input: unknown
+  /** 写 intent 的进程身份 */
+  anchor?: ProcessIdentity
 }
 
 /**
@@ -93,6 +98,7 @@ export function fold(state: TaskState, events: TaskEvent[]): TaskState {
           input: env.input,
           status: 'running',
           attempt: 1,
+          ...(env.anchor ? { anchor: env.anchor } : {}),
         }
         state.effects.set(env.key, record)
         state.effectOrder.push(record)
