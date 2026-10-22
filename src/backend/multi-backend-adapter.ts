@@ -3,6 +3,9 @@
 import { defineBackendAdapter } from 'qwen-audio-agent/backend-adapter-sdk'
 import type { BackendEvent, BackendPort, BackendTask } from '../types/qwen-audio-agent/backend-adapter-sdk'
 import { createRouter, type Router } from './routing'
+import { effect } from '../durable/effect'
+import { loadState } from '../durable/effect'
+import type { TaskWorld } from '../durable/world'
 
 function clean(value: unknown): string {
   return String(value || '').trim()
@@ -12,6 +15,8 @@ export interface MultiBackendAdapterOptions {
   router?: Router
   defaultBackend?: string
   rules?: Array<{ backendId: string; match: Record<string, unknown> }>
+  /** durable 化：任务状态写入 TaskWorld 日志，崩溃后可从日志重建 taskMap。 */
+  world?: TaskWorld
 }
 
 export class MultiBackendAdapter implements BackendPort {
@@ -23,6 +28,7 @@ export class MultiBackendAdapter implements BackendPort {
   _unsubscribers = new Map<string, () => void>()
   ready = false
   closed = false
+  readonly world?: TaskWorld
 
   constructor(backends: Record<string, BackendPort>, options: MultiBackendAdapterOptions = {}) {
     if (!backends || typeof backends !== 'object' || Object.keys(backends).length === 0) {
@@ -34,6 +40,7 @@ export class MultiBackendAdapter implements BackendPort {
         defaultBackend: options.defaultBackend,
         rules: options.rules,
       })
+    this.world = options.world
   }
 
   _backendIdFor(task: BackendTask): string {
@@ -102,7 +109,23 @@ export class MultiBackendAdapter implements BackendPort {
     const isNew = Boolean(id) && !this.taskMap.has(id)
     if (isNew) this.taskMap.set(id, backendId)
     try {
-      const outcome = await this.backends[backendId].submit(work, context)
+      let outcome: unknown
+      if (this.world && id) {
+        // durable：submit 走 effect，replay: never 防重复提交（重复 submit 产生重复任务）
+        outcome = await effect(
+          { world: this.world, runId: id },
+          `task:${id}:submit:${backendId}`,
+          { name: 'submit', replay: 'never', input: { backendId } },
+          async () => {
+            await this.world!.setRunStatus(id, 'running')
+            const result = await this.backends[backendId].submit(work, context)
+            await this.world!.setRunStatus(id, 'completed')
+            return result
+          },
+        )
+      } else {
+        outcome = await this.backends[backendId].submit(work, context)
+      }
       // submit resolve 即同步完成（hold 语义下会一直 pending，不会走到这里）
       if (id) this.taskMap.delete(id)
       return outcome
@@ -110,6 +133,23 @@ export class MultiBackendAdapter implements BackendPort {
       // 仅当本次是"新任务"时清理；重复 submit 失败不影响原 hold 任务的记录
       if (isNew && id) this.taskMap.delete(id)
       throw error
+    }
+  }
+
+  /** 进程重启后从日志重建 taskMap（durable 恢复）。 */
+  async rebuildTaskMap(): Promise<void> {
+    if (!this.world) return
+    const runs = await this.world.listActiveRuns()
+    for (const run of runs) {
+      if (this.taskMap.has(run.runId)) continue
+      const state = await loadState(this.world, run.runId)
+      for (const rec of state.effectOrder) {
+        if (rec.name === 'submit') {
+          const input = rec.input as { backendId?: string }
+          if (input.backendId) this.taskMap.set(run.runId, input.backendId)
+          break
+        }
+      }
     }
   }
 
