@@ -71,8 +71,10 @@ cd /path/to/fugue && npm install
 cp config/config.example.env config/config.env
 # frontend voice credentials reuse qwen-audio-agent's config.env (DASHSCOPE_API_KEY / DOUBAO_API_KEY)
 
-# 3. start (WebUI at http://127.0.0.1:3101)
-QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
+# 3. start (defaults to node_modules/qwen-audio-agent, no env var needed)
+npm start
+# WebUI at http://127.0.0.1:3101
+# point to a source checkout: QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
 ```
 
 Tests & checks:

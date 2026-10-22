@@ -71,8 +71,10 @@ cd /path/to/fugue && npm install
 cp config/config.example.env config/config.env
 # 语音前台凭据复用 qwen-audio-agent 的 config.env（DASHSCOPE_API_KEY / DOUBAO_API_KEY）
 
-# 3. 启动
-QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
+# 3. 启动（默认自动定位 node_modules/qwen-audio-agent，无需手动设置环境变量）
+npm start
+# WebUI: http://127.0.0.1:3101
+# 如需指向源码目录：QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
 ```
 
 测试与类型检查：
