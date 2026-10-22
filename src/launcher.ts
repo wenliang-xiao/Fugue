@@ -19,6 +19,12 @@ import { watchLive } from './core/live-watcher'
 process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR = process.env.QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR
   || fileURLToPath(new URL('../config/frontend-prompt', import.meta.url))
 
+// qwen-audio-agent 体验默认值（个人助手），用户可在 config.env 覆盖：
+// - 播报结果截断：默认 6000 字符导致播报=全文朗读，收窄到 500（详情看屏幕展示）
+process.env.QWEN_AUDIO_AGENT_RESULT_CONTEXT_MAX_CHARS = process.env.QWEN_AUDIO_AGENT_RESULT_CONTEXT_MAX_CHARS || '500'
+// - 后台工作目录：qwen-audio 默认 ~/.config/qwaudio/data/workspace，改为项目当前目录
+process.env.QWAUDIO_WORKSPACE = process.env.QWAUDIO_WORKSPACE || process.cwd()
+
 /**
  * 根据 harness 配置动态创建 backend：
  * - spec.headless：一次性进程执行（如 dsh --profile headless）
