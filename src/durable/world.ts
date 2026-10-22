@@ -49,4 +49,6 @@ export interface TaskWorld {
   publish(runId: string, event: unknown): void
   /** 订阅 run 的实时事件流。返回 unsubscribe。 */
   subscribe(runId: string, listener: (event: unknown) => void): () => void
+  /** 订阅所有 run 的实时事件（全局观察，如实时打印打点）。返回 unsubscribe。 */
+  subscribeAll(listener: (runId: string, event: unknown) => void): () => void
 }

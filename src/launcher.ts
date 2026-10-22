@@ -12,6 +12,7 @@ import { loadConfig, buildSpawnThinkingDescription, type FugueConfig, type Backe
 import { FeishuClient } from './clients/feishu/client'
 import { createLarkConnection } from './clients/feishu/lark-connection'
 import { createFileWorld } from './durable/world-file'
+import { watchLive } from './core/live-watcher'
 
 // 前台提示词目录：Fugue 自定义"总指挥"人设（在 qwen-audio config 加载前设置）。
 // 见 docs/02-tech/coordination-model.md。
@@ -48,7 +49,7 @@ export async function buildBackends(cfg: FugueConfig): Promise<Record<string, Ba
   return backends
 }
 
-export async function buildAgent(cfg: FugueConfig): Promise<Record<string, unknown>> {
+export async function buildAgent(cfg: FugueConfig, world = createFileWorld(resolve(process.cwd(), 'data', 'tasks'))): Promise<Record<string, unknown>> {
   const backends = await buildBackends(cfg)
   if (Object.keys(backends).length === 0) {
     throw new Error('没有可用的后台 harness，请检查 config/harnesses.json')
@@ -62,7 +63,7 @@ export async function buildAgent(cfg: FugueConfig): Promise<Record<string, unkno
       ),
     }),
     // 个人助手本地真实跑：任务状态持久化到本地文件，崩溃后重启可从日志恢复
-    world: createFileWorld(resolve(process.cwd(), 'data', 'tasks')),
+    world,
   })
   await mba.rebuildTaskMap() // 重启恢复：从日志重建进行中任务的索引
   return createBackendAgentHost(mba)
@@ -71,7 +72,12 @@ export async function buildAgent(cfg: FugueConfig): Promise<Record<string, unkno
 async function main(): Promise<void> {
   const cfg = loadConfig()
 
-  const agent = await buildAgent(cfg)
+  // 个人助手本地持久化 world + 实时打点观察器（终端实时看 mark/step/run）
+  const world = createFileWorld(resolve(process.cwd(), 'data', 'tasks'))
+  watchLive(world)
+  console.log('[fugue] 实时打点观察器已开启（任务流转会实时打印到本终端）')
+
+  const agent = await buildAgent(cfg, world)
   // 动态 import：确保 QWEN_AUDIO_AGENT_FRONTEND_PROMPT_DIR 在 qwen-audio config 加载前生效
   const { createGatewayApplication } = await import('qwen-audio-agent/gateway-application')
   const application = createGatewayApplication({

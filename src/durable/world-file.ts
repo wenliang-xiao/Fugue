@@ -28,12 +28,20 @@ export function createFileWorld(dir: string): TaskWorld {
   const index = loadIndex(dir)
   const queueHandlers = new Set<(runId: string, payload?: unknown) => Promise<void>>()
   const streams = new Map<string, Set<(event: unknown) => void>>()
+  const allListeners = new Set<(runId: string, event: unknown) => void>()
 
   const fileOf = (runId: string): string => join(dir, `${runId}.jsonl`)
 
   const world: TaskWorld = {
     async append(runId, event) {
       appendFileSync(fileOf(runId), `${JSON.stringify(event)}\n`, { encoding: 'utf8' })
+      // append 即发布：实时订阅者（watchLive）同步看到
+      for (const listener of [...(streams.get(runId) ?? [])]) {
+        listener(event)
+      }
+      for (const listener of [...allListeners]) {
+        listener(runId, event)
+      }
     },
 
     async read(runId, after = 0) {
@@ -83,6 +91,9 @@ export function createFileWorld(dir: string): TaskWorld {
       for (const listener of [...(streams.get(runId) ?? [])]) {
         listener(event)
       }
+      for (const listener of [...allListeners]) {
+        listener(runId, event)
+      }
     },
 
     subscribe(runId, listener) {
@@ -90,6 +101,11 @@ export function createFileWorld(dir: string): TaskWorld {
       set.add(listener)
       streams.set(runId, set)
       return () => set.delete(listener)
+    },
+
+    subscribeAll(listener) {
+      allListeners.add(listener)
+      return () => allListeners.delete(listener)
     },
   }
 

@@ -78,15 +78,30 @@ QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
 测试与类型检查：
 
 ```bash
-npm test         # vitest：55 个测试（routing / multi-backend / message-bridge / feishu-client / ...）
+npm test          # vitest：94 个测试（durable 内核 + routing + multi-backend + feishu + 端到端崩溃恢复）
 npm run typecheck # tsc --noEmit（TypeScript strict）
-npm run poc      # 上游 BackendPort 一致性套件
+npm run inspect   # 任务观察台：本地任务流转 / 打点 / effect 状态
+npm run poc       # 上游 BackendPort 一致性套件
 ```
+
+### 📡 实时观察（debug）
+
+启动时自动开启**实时打点观察器**，委派任务时 mark/step/run 事件会实时打印到终端：
+
+```
+[fugue] 实时打点观察器已开启
+07:57:57.504  [step] step_started ... (submit) replay=never
+07:57:57.505  [mark] intent (submit)          ← 打点实时打印
+07:57:57.506  [step] step_completed ...
+07:57:57.508  [mark] complete (submit)
+```
+
+另开终端随时回看全量流转：`npm run inspect`。
 
 ## 🗺️ Roadmap：走向 agent 矩阵
 
 ```
-P0 ✅ durable 地基（TS 迁移已完成，TaskWorld/fold/effect/anchor 进行中）
+P0 ✅ durable 地基（TS 迁移 + TaskWorld/fold/effect/anchor/fencing + 崩溃恢复端到端）
 P1 ⏳ pi/opencode 接 durable storage（「agent 不会死」落地）
 P2 📋 documents 共享记忆 + 并行 fan-out（矩阵雏形）
 P3 📋 专家横向协作 / 调度器 / 成本账本（真矩阵）

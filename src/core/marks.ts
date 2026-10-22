@@ -56,8 +56,7 @@ export function mark(
     ...fields,
   } satisfies Mark
   try {
-    world.publish(runId, m)
-    // 落盘：fire-and-forget，mark 失败绝不破坏被记录的操作
+    // append 即发布（world 的 append 会同步通知实时订阅者），无需单独 publish
     void world.append(runId, { type: 'mark', data: m, at: m.t }).catch(() => {})
   } catch {
     // marks 失败绝不破坏被记录的操作

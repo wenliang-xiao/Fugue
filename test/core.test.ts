@@ -17,8 +17,10 @@ test('mark：写到 world 的 live 流，字段正确', () => {
   mark(world, 'run-1', 'submit', { taskId: 'task-1' })
 
   assert.equal(received.length, 1)
-  const m = received[0] as Mark
-  assert.equal(m.type, 'mark')
+  // mark 经 append 发布：事件是 TaskEvent 形状（{ type:'mark', data: Mark, at }）
+  const evt = received[0] as { type: string; data: Mark }
+  const m = evt.data
+  assert.equal(evt.type, 'mark')
   assert.equal(m.name, 'submit')
   assert.equal(m.runId, 'run-1')
   assert.equal(m.taskId, 'task-1')

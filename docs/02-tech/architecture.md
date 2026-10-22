@@ -60,19 +60,27 @@ flowchart TB
 | `multi-backend-adapter` | 新增 | **核心新增** | 聚合多 harness，实现 BackendPort，内部路由 | REQ-005 |
 | `feishu-client` | 新增 | **核心新增** | 飞书机器人，text_only client，接 Gateway Client Protocol | REQ-002 |
 | `harness-adapters` | 新增 | 复用上游 ACP driver | opencode/pi 复用；Hermes 通过 SSH 隧道 | REQ-004/007 |
+| `durable` | 新增 | **核心新增** | 任务持久化内核：TaskWorld/fold/effect/anchor/fencing（对齐 durable-harness） | ADR-0009 |
+| `core` | 新增 | **核心新增** | 可观测基础设施：logger/marks/audit/live-watcher | ADR-0009 |
 | `launcher` | 新增 | 新增 | 自定义 Gateway launcher，组装 MultiBackendAdapter | REQ-004 |
 
-### 2.1 multi-backend-adapter（核心）
+### 2.1 multi-backend-adapter（核心，durable 化）
 
-实现协议无关的 `BackendPort`（上游 SDK 提供），内部维护多个 backend 与路由表：
+实现协议无关的 `BackendPort`（上游 SDK 提供），内部维护多个 backend 与路由表，并**可选接入 durable 内核**（ADR-0009）：
 
 ```
 MultiBackendAdapter
 ├── backends: Map<backendId, BackendPort>   # opencode / pi / hermes
 ├── router: Task -> backendId                # 显式指定 > 规则 > 默认
-├── taskMap: Map<gatewayTaskId, {backendId, backendTaskId}>
+├── taskMap: Map<gatewayTaskId, backendId>   # 内存缓存，崩溃后从日志重建
+├── world?: TaskWorld                        # durable：任务事件日志（Storage+Queue+Streamer）
 └── subscribe: 聚合所有 backend 事件，按 gatewayTaskId 归一化后转发
 ```
+
+**durable 化（ADR-0009，详见 [durable-design.md](./durable-design.md)）**：
+- `submit` 走 `effect(replay: never)` —— 写 intent → 跑 backend.submit → 写 outcome；崩溃后 `never` 不重跑，防重复任务。
+- `taskMap` 从日志 fold 重建（`rebuildTaskMap()`），进程重启后恢复任务归属。
+- 任务状态持久化到本地 `data/tasks/`（world-file），个人助手本地真实跑、崩溃可恢复。
 
 **路由优先级**（P1 首版）：`显式指定（用户说"让 Hermes 干"）` > `规则匹配（简单关键词/任务类型）` > `默认 backend`。智能路由（按任务类型自动选）是 P2。
 
@@ -154,30 +162,52 @@ sequenceDiagram
 
 MultiBackendAdapter 实现该完整接口，对上游 Gateway 呈现为"一个 backend"。
 
-### 4.2 MultiBackendAdapter 内部接口（新增）
+### 4.2 MultiBackendAdapter 内部接口（新增，TypeScript）
 
-```js
-class MultiBackendAdapter {
-  constructor(backends: Record<backendId, BackendPort>, router: Router)
-  // BackendPort 全部方法，内部按 taskMap 映射转发
-  // router.select(task): backendId
-  // subscribe(cb): 聚合 + 归一化所有 backend 事件
+```ts
+class MultiBackendAdapter implements BackendPort {
+  constructor(backends: Record<backendId, BackendPort>, options: {
+    router?: Router
+    defaultBackend?: string
+    rules?: Array<{backendId, match}>
+    world?: TaskWorld   // durable：任务事件日志（可选）
+  })
+  submit(work, context): Promise<unknown>   // durable 时走 effect(replay: never)
+  rebuildTaskMap(): Promise<void>           // 崩溃后从日志重建 taskMap
+  // BackendPort 其余方法，内部按 taskMap 映射转发
 }
 ```
 
-### 4.3 Gateway 组装（launcher）
+### 4.3 TaskWorld 接口（durable 内核，新增）
 
-```js
+```ts
+interface TaskWorld {
+  // Storage：任务事件日志（唯一真相源）
+  append(runId, event): Promise<void>
+  read(runId, after?): Promise<{ events, offset }>
+  listActiveRuns(): Promise<ActiveRun[]>
+  setRunStatus(runId, status): Promise<void>
+  // Queue：崩溃重投递（backstop）
+  send(runId, payload?): Promise<void>
+  onMessage(handler): () => void
+  // Streamer：实时事件流（打点/进度）
+  publish(runId, event): void
+  subscribe(runId, listener): () => void
+  subscribeAll(listener): () => void   // 全局观察（实时打点）
+}
+```
+
+### 4.4 Gateway 组装（launcher，TypeScript）
+
+```ts
 import { createGatewayApplication } from 'qwen-audio-agent/gateway-application'
 import { createBackendAgentHost } from 'qwen-audio-agent/backend-adapter-sdk'
-import { MultiBackendAdapter } from './multi-backend-adapter.mjs'
+import { MultiBackendAdapter } from './backend/multi-backend-adapter'
+import { createFileWorld } from './durable/world-file'
 
-const mba = new MultiBackendAdapter({
-  opencode: acpBackend('opencode'),
-  pi: acpBackend('pi'),
-  hermes: sshAcpBackend('hermes', { host: 'aliyun' }),
-}, router)
-
+const world = createFileWorld(resolve(process.cwd(), 'data', 'tasks')) // 本地持久化
+const mba = new MultiBackendAdapter({ opencode, pi, hermes }, { router, world })
+await mba.rebuildTaskMap()  // 重启恢复
 const agent = createBackendAgentHost(mba)
 const app = createGatewayApplication({ agent })
 ```
@@ -189,11 +219,12 @@ const app = createGatewayApplication({ agent })
 ```mermaid
 flowchart LR
     subgraph Local["本地 mac"]
-        GW["Gateway<br/>前台 Agent + 编排 + MultiBackendAdapter"]
+        GW["Gateway<br/>前台 Agent + 编排 + MultiBackendAdapter(durable)"]
         OC["OpenCode"]
         PI["Pi"]
         FC["飞书 client"]
         VC["语音 client<br/>WebUI/orb/手机"]
+        DT["data/tasks/<br/>任务事件日志 JSONL"]
     end
     subgraph Cloud["云端 - 阿里云/腾讯云"]
         HM["Hermes"]
@@ -205,12 +236,14 @@ flowchart LR
     FS -->|事件回调| FC
     GW --> OC
     GW --> PI
+    GW -->|持久化| DT
     GW -->|"SSH 隧道<br/>hermes acp --accept-hooks"| HM
 ```
 
 - 语音模型（前台 Agent）走云端 API（DashScope / 豆包等，密钥配置在上游 config）。
 - 飞书 client 与 Gateway 同机（loopback），飞书开放平台通过公网回调触达（需内网穿透或反向代理）。
 - Hermes 经 SSH 隧道把远端 stdio ACP 透传到本地 Gateway。
+- **任务状态持久化到本地 `data/tasks/`（world-file JSONL），个人助手本地真实跑、崩溃重启从日志恢复（ADR-0009）**。
 
 ---
 
@@ -219,8 +252,10 @@ flowchart LR
 | 风险 | 验证方式 | 状态 |
 |------|---------|------|
 | MultiBackendAdapter 能否通过上游 conformance suite | `verifyBackendAdapterConformance` | ✅ 已通过（`poc/run-conformance.mjs`） |
-| 飞书 client 的 text_only 协商与任务推送 | 最小 client 冒烟 | 待实现（需飞书凭据） |
+| 飞书 client 的 text_only 协商与任务推送 | 最小 client 冒烟 | ✅ 已验证（飞书长连接收发正常） |
 | Hermes 经 SSH 隧道走 ACP 的稳定性 | 手工 + 断线重连用例 | Hermes ACP 已确认 stdio-only（ADR-0004）；SSH 稳定性待实测 |
-| 上游 Gateway "单 client" 对双端分时的影响 | takeover + replay 用例 | 待验证 |
+| 上游 Gateway "单 client" 对双端分时的影响 | takeover + replay 用例 | ✅ takeover 已验证 |
+| durable 内核正确性（fold/effect/anchor/fencing） | 单元测试 + SIGKILL 端到端 | ✅ 94 测试全绿（含真实 SIGKILL 崩溃恢复） |
+| 真实 harness 委派 + 崩溃恢复 | 真实委派验证 | ⏳ 待真实任务验证（基础设施已就绪） |
 
 详见各 [ADR](./adr/) 与 [测试计划](../04-test/test-plan.md)。

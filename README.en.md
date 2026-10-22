@@ -1,6 +1,6 @@
 # Fugue 🎼
 
-> **Many agents, one fugue.** — a full-duplex, multi-endpoint conversation hub that orchestrates your existing agent harnesses.
+> **Many agents, one fugue.** — a full-duplex, multi-endpoint, **crash-resilient** orchestration hub for your agent harnesses.
 
 [中文](README.md) | English
 
@@ -10,98 +10,109 @@
 [![CI](https://github.com/wenliang-xiao/Fugue/actions/workflows/ci.yml/badge.svg)](https://github.com/wenliang-xiao/Fugue/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/wenliang-xiao/Fugue)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](https://www.typescriptlang.org/)
 
-Fugue turns the agent harnesses you already run — OpenCode, Pi, Claude Code, Hermes, and any ACP/A2A-compatible harness — into **one assistant** that you can talk to from anywhere, that keeps working while you chat, and that reports back when it's done.
+Turn the agent harnesses you already run — local **OpenCode / Pi**, cloud **Hermes**, and any ACP/A2A-compatible harness — into **one assistant** that you can talk to from anywhere, that keeps working while you chat, that reports back when it's done, and that **never loses a task to a crash**.
 
-- **Full-duplex voice** — talk like a phone call: interrupt, interject, redirect mid-sentence.
-- **Multi-endpoint** — voice app (desktop orb / WebUI / phone) and Feishu text share the same agent's memory, tasks, and state.
-- **Multi-harness delegation** — one frontend chats, multiple backend harnesses work in parallel, routed by task type or by your explicit choice.
+## 🏗️ Architecture
 
-## Why Fugue
+<img src="assets/diagrams/fugue-architecture.png" alt="Fugue architecture" width="720">
 
-Agent harnesses have exploded — OpenCode, Pi, Claude Code, Codex, DeepSeek Harness, Hermes… — but each is an isolated terminal or desktop window:
+Three layers: **qwen-audio-agent** (frontend orchestration + multi-endpoint + full-duplex, reused as-is) → **Fugue durable layer** (task log + fold + crash recovery, built in-house) → **harness layer** (unreliable subprocesses, restarted and resumed from the log after a crash).
 
-| Today | Problem |
-|-------|---------|
-| One entry per harness | N harnesses = N windows to juggle |
-| Entry bound to a local machine | Cloud harnesses (like Hermes) have no unified entry |
-| Chat blocks on work | One question, one answer — long tasks leave you waiting |
-| No voice | Walking, driving, hands-busy are basically unsupported |
+## ✨ Features
 
-Fugue is an **orchestration layer** (not another harness). It splits "conversation" from "work": the frontend stays in the conversation with you while the backend delegates to your existing harnesses in parallel and speaks up when done.
+- 🎙️ **Full-duplex voice** — talk like a phone call: interrupt, interject, redirect mid-sentence.
+- 📱 **Multi-endpoint** — voice app (desktop orb / WebUI / phone) and Feishu text share the same agent's memory, tasks, and state.
+- 🧩 **Multi-harness delegation** — one frontend chats, multiple backend harnesses work in parallel, routed by domain or by your explicit choice ("let pi do it").
+- 💪 **Crash-resilient (durable)** — task state is written to an event log; after a Gateway or harness crash the task resumes from the log. **Completed calls never re-run, side-effecting calls never run twice** (aligned with Vercel's durable-harness design — see [analysis](docs/00-research/durable-harness-analysis.md)).
+- 🔌 **Zero-invasion integration** — reuse your existing harnesses, no forking the base (qwen-audio-agent); only two standard extension points.
 
-## Orchestration, not bridging
+## Why orchestration, not bridging
 
-Most "Feishu agent" projects are **synchronous bridges** (cc-connect, botmux, dsh-lark-*): they forward a harness's stdin/stdout to IM — send a command, wait, get a result.
+Most "Feishu agents" are **synchronous bridges** (cc-connect, botmux, dsh-lark-*): they pipe a harness's stdin/stdout to IM — send a command, wait for output.
 
-Fugue is **asynchronous orchestration**:
+Fugue is **async orchestration**:
 
-| | Bridging (cc-connect / botmux) | Fugue (orchestration) |
+| | Bridge (cc-connect / botmux) | Fugue (orchestration) |
 |---|---|---|
-| Interaction | Send → execute → return (sync console) | Delegate → keep chatting → parallel work → proactive report |
-| Experience | Remotely driving a terminal | Talking to an assistant |
-| Multi-task | Serial | Parallel, query/cancel/redirect anytime |
-| Full-duplex voice | ❌ | ✅ core feature |
-| Multi-harness | Weak (CLI forwarding) | ✅ pluggable, routed / explicit |
-| Cloud harness (Hermes) | ❌ | ✅ first-class (SSH-tunneled ACP) |
+| Interaction | command → run → output (sync console) | delegate → keep chatting → background work → proactive report |
+| Experience | remote-controlling a terminal | talking to an assistant |
+| Multi-task | mostly serial | parallel backends, ask progress / cancel / add input anytime |
+| Full-duplex voice | ❌ | ✅ core selling point |
+| Crash recovery | ❌ process dies, state lost | ✅ resumes from event log |
+| Multi-harness | weak (CLI forwarding) | ✅ pluggable, routed / explicit |
+| Cloud harness (Hermes) | ❌ | ✅ first-class (SSH tunnel ACP) |
 
-## Architecture
+## 💪 Durability: mechanisms borrowed from durable-harness
 
-```
-              ┌────────────────────────────┐
-  Feishu ───▶ │  Feishu client (text_only) │──┐
-  (text)      └────────────────────────────┘  │
-              ┌────────────────────────────┐  │   one Gateway
-  Voice app ─▶│  WebUI / orb / phone       │──┤   (tasks / memory / permissions
-  (full-duplex)└────────────────────────────┘  │   / proactive reports)
-              ┌────────────────────────────┐  │
-              │        Gateway             │◀─┘
-              │  frontend agent + orchestration
-              └────────────┬───────────────┘
-          ┌──────────┬─────┴─────┬──────────┐
-       OpenCode      Pi        Hermes(remote)
-       (local)     (local)    (aliyun/tencent)
-```
+Tasks are never lost or duplicated, thanks to this design (deep dive in [durable-harness analysis](docs/00-research/durable-harness-analysis.md)):
 
-Built on [qwen-audio-agent](https://github.com/QwenAudio/qwen-audio-agent) (Apache-2.0) — we **don't fork its core**, we extend it through two public boundaries: `BackendPort` (multi-harness aggregation) and the Gateway Client Protocol (Feishu client).
+<table>
+<tr>
+<td width="50%"><img src="assets/diagrams/durable-harness-crash-recovery.png" alt="crash recovery sequence" width="460"></td>
+<td width="50%"><img src="assets/diagrams/durable-harness-effect-sandwich.png" alt="effect sandwich state machine" width="460"></td>
+</tr>
+</table>
 
-## Quick start
+- **intent/outcome log** — every delegation step writes an intent first, then an outcome. After a crash the log answers exactly: what finished, what was running, what never started.
+- **effect sandwich + replay** — `completed` replays the result (no double billing), `failed` rethrows, `running` re-runs or not by its `safe/never` policy — a `never` call (e.g. duplicate submit) never runs twice.
+- **anchor + queue backstop** — liveness belongs to the queue, no heartbeats in app code; process dies → queue redelivers → a new process resumes from the log.
+- **epoch fencing** — when multiple endpoints (voice + Feishu) time-share a session, stale writes from a zombie process are fenced out.
+
+## 🚀 Quick start
 
 ```bash
-# 1. deps (also install qwen-audio-agent's source deps)
+# 1. dependencies (qwen-audio-agent source needs npm install first)
 cd /path/to/qwen-audio-agent && npm install --omit=dev
 cd /path/to/fugue && npm install
 
 # 2. configure harnesses + Feishu
 cp config/config.example.env config/config.env
-# edit config/config.env: enable opencode/pi/hermes + Hermes SSH host + Feishu app credentials
+# frontend voice credentials reuse qwen-audio-agent's config.env (DASHSCOPE_API_KEY / DOUBAO_API_KEY)
 
-# 3. voice frontend credentials (reuse qwen-audio-agent's config.env)
-#    ~/.config/qwaudio/config.env — set DASHSCOPE_API_KEY etc.
-
-# 4. run
+# 3. start (WebUI at http://127.0.0.1:3101)
 QWEN_AUDIO_AGENT_ROOT=/path/to/qwen-audio-agent npm start
 ```
 
-## Test
+Tests & checks:
 
 ```bash
-npm test       # 35 tests (routing / multi-backend / message-bridge / feishu-client)
-npm run poc    # upstream BackendPort conformance suite
+npm test          # vitest: 94 tests (durable kernel + routing + multi-backend + feishu + e2e crash recovery)
+npm run typecheck # tsc --noEmit (TypeScript strict)
+npm run inspect   # task observatory: local flows / marks / effect states
+npm run poc       # upstream BackendPort conformance suite
 ```
 
-## Spec-driven development
+### 📡 Live observation (debug)
 
-This repo follows a strict **SDD (spec-driven development)** workflow — spec first, then code, review, and test, all traceable to the spec:
+A **live mark watcher** starts with the app — mark/step/run events stream to your terminal as tasks run:
 
-- `docs/01-prd/` — product requirements (12 REQs)
-- `docs/02-tech/` — architecture + ADRs + module designs
-- `docs/03-review/` — review guide (spec conformance)
-- `docs/04-test/` — test plan + cases
-- `docs/vibe-coding.md` — AI-collaborative development discipline
-- `docs/trace/` — dev-log / debug-log / handoff / ratify-log
+```
+[fugue] live mark watcher enabled
+07:57:57.504  [step] step_started ... (submit) replay=never
+07:57:57.505  [mark] intent (submit)          ← marks streamed live
+07:57:57.506  [step] step_completed ...
+07:57:57.508  [mark] complete (submit)
+```
 
-See [AGENTS.md](AGENTS.md) for the full workflow.
+Review the full flow anytime in another terminal: `npm run inspect`.
+
+## 🗺️ Roadmap: toward an agent matrix
+
+```
+P0 ✅ durable foundation (TS migration + TaskWorld/fold/effect/anchor/fencing + e2e crash recovery)
+P1 ⏳ pi/opencode on durable storage ("the agent never dies")
+P2 📋 documents shared memory + parallel fan-out (matrix prototype)
+P3 📋 expert-to-expert delegation / scheduler / cost ledger (true matrix)
+```
+
+## 📚 Docs
+
+- [Architecture](docs/02-tech/architecture.md) · [Durable design](docs/02-tech/durable-design.md) · [ADRs](docs/02-tech/adr/) · [Module design](docs/02-tech/modules/)
+- [durable-harness deep analysis](docs/00-research/durable-harness-analysis.md) · [Competitor analysis](docs/00-research/competitor-analysis.md)
+- [PRD](docs/01-prd/PRD.md) · [Glossary](docs/glossary.md) · [Review guide](docs/03-review/review-guide.md) · [Test plan](docs/04-test/test-plan.md)
+- [SDD workflow](AGENTS.md) · [AI collaboration](docs/vibe-coding.md) · [Constitution](CONSTITUTION.md)
 
 ## License
 
