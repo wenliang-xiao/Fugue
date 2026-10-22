@@ -310,3 +310,99 @@ P3：专家横向协作 / 调度器 / 成本账本（真矩阵）
 1. **生态耦合**：durable-harness 设计目标是 Vercel/Workflow SDK 部署；Fugue 是本地优先 + 云端 Hermes（阿里云/腾讯云），引入会带来 Vercel 生态的部署假设。
 2. **接口冲突**：qwen-audio-agent 的 `BackendPort` 与 durable-harness 的 `Harness` 是两个不同的契约，Fugue 已实现前者，桥接两者需额外适配层，收益不成比例。
 3. **学习/掌控成本**：durable-harness 的机制（~3000 行内核）内化成「任务级」裁剪版，比引入完整依赖更可控、更贴合 Fugue 的「可读 + 模块化」宪法。
+
+---
+
+## 11. 可观测性与 trace（一等公民）
+
+> 原则：**debug 不是靠事后翻代码，而是靠 trace 里一眼看到 turn 在哪停、哪续**。本设计把可观测性作为 durable 化的内建能力，而非事后追加。
+
+### 11.1 借鉴的两套设计
+
+| 来源 | 可观测机制 |
+|------|-----------|
+| durable-harness | `marks.ts`（timing marks 写到 live 流）+ `agent-runs.ts`（trace + TraceAudience 脱敏）+ `streams.ts`（live 流 / effect 流）+ `instrumentation/otel`（OpenTelemetry） |
+| qwen-audio-agent | `core/logger`（createLogger + runWithLogContext 结构化日志）+ `core/operation-audit`（append-only JSONL 审计）+ `voice/turn-correlation`（turn 关联）+ `transport/replay-buffer`（重连回放） |
+
+### 11.2 Fugue 的四层可观测
+
+**① 结构化日志（对齐 qwen logger）**
+
+```typescript
+// src/core/logger.ts
+import { createLogger, runWithLogContext } from './logger'
+const logger = createLogger({ component: 'durable' })
+// 每个日志行携带 taskId / runId，贯穿委派全链路
+runWithLogContext({ taskId, runId }, () => { logger.info('...') })
+```
+
+**② timing marks（对齐 dh marks）**
+
+关键时序点写到 TaskWorld 的 live 流，`MarkName` 枚举：
+
+```
+submit → route → intent → ack → forward → complete
+  └─ recover.start → recover.done（崩溃恢复）
+  └─ model.first_token / tool.start / tool.end（性能）
+```
+
+每个 mark 携带 `{ type:'mark', name, t, pid, runId, taskId, durableSlot }`，用于 benchmark（TTFT/TPOT/写延迟）+ UI + debug。
+
+**③ 任务 trace（对齐 dh agent-runs + qwen turn-correlation）**
+
+每个委派任务一个 `traceId = taskId`，贯穿「前台委派 → 路由 → 后台执行 → 播报 → 崩溃恢复」全链路。崩溃后新进程续跑**写进同一个 trace**，一眼看到 turn 断点。
+
+**④ 审计日志（对齐 qwen operation-audit）**
+
+append-only JSONL，记录不可逆操作（权限审批、任务取消、退款类工具）。**审计失败绝不破坏被记录的操作**，`health()` 报告审计状态。
+
+### 11.3 脱敏原则（对齐 dh modelTools/modelMessages）
+
+- trace 只留 tool 定义（name/description/inputSchema），**不留 provider 凭据 / transport options**。
+- `TraceAudience`：`public`（模型+工具内容）/ `private`（仅元数据）/ `unknown`。
+
+### 11.4 debug 场景映射
+
+| debug 场景 | 可观测手段 |
+|-----------|-----------|
+| 崩溃恢复：turn 在哪停哪续 | `recover.start/recover.done` mark + 同一 trace 断点 |
+| 性能：谁慢 | `model.first_token / tool.start / tool.end / ack` 算 TTFT/TPOT/写延迟 |
+| 重复执行：为什么跑了两次 | replay 策略 + intent/outcome 日志回放痕迹 |
+| 安全审计：谁审批了不可逆操作 | audit JSONL |
+
+---
+
+## 12. 模块分层（参考两项目）
+
+### 12.1 分层原则
+
+参考 **qwen-audio-agent**（`app` 组装 / `backend` 适配器+驱动 / `core` 基础设施 / `transport` 传输 / `voice` 语音 / `conversation` 对话 / `task` 任务 / `session` 会话）与 **durable-harness**（`harness-world` 内核 / 各 harness adapter / 各 world 实现）的分层，Fugue 目标目录：
+
+```
+src/
+├── core/                  # 基础设施（对齐 qwen core + dh kernel）
+│   ├── logger.ts          # 结构化日志（runWithLogContext）
+│   ├── audit.ts           # append-only JSONL 审计
+│   ├── marks.ts           # timing marks（MarkName 枚举）
+│   └── trace.ts           # 任务 trace（traceId = taskId）
+├── durable/               # durable 内核（对齐 dh kernel，任务级裁剪）
+│   ├── world.ts           # TaskWorld 三合一接口
+│   ├── world-local.ts     # 本地实现
+│   ├── fold.ts            # 纯函数折叠（切片 2）
+│   ├── effect.ts          # effect sandwich + replay（切片 3）
+│   └── anchor.ts          # anchor 判定（切片 3）
+├── backend/               # 后端适配（对齐 qwen backend）
+│   ├── multi-backend-adapter.ts
+│   ├── routing.ts
+│   └── backends/          # harness-backend / headless-backend
+├── clients/               # 客户端（对齐 qwen client）
+│   └── feishu/
+└── launcher.ts            # 组装（对齐 qwen app）
+```
+
+### 12.2 分层约束（宪法「可读 + 模块化」）
+
+- **core/ 与 durable/ 无业务依赖**：logger/audit/marks/trace 与 world/fold/effect/anchor 是纯基础设施，不 import backend/clients。
+- **backend/ 依赖 durable/（单向）**：MultiBackendAdapter durable 化后依赖 fold/effect/anchor，不反向。
+- **launcher.ts 只做组装**：不写业务逻辑（对齐 qwen app）。
+- 每个模块公开接口 ≤ 8K tokens 可一次消化（宪法铁律 1）。
