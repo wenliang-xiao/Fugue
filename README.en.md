@@ -22,6 +22,19 @@ Turn the agent harnesses you already run — local **OpenCode / Pi**, cloud **He
 - 💪 **Crash-resilient** — task state is written to an event log and resumes after a crash; **completed calls never re-run, side-effecting calls never run twice**.
 - 🔌 **Zero-invasion** — reuse your harnesses, no forking the base (qwen-audio-agent); only its standard extension points.
 
+## Deployment forms
+
+Fugue has two deployment forms sharing one orchestration core (multi-harness delegation + durable kernel + session memory):
+
+| | A · Local assistant | C · Cloud-resident |
+|---|---|---|
+| Core value | full-duplex multi-agent + session memory + harness division of labor | 24×7 resident, always responsive |
+| Deployment | local Mac, launchd daemon (resident + autostart + crash self-heal) | cloud (reuse the Hermes host) |
+| Availability | available while awake; sleeps on lid-close, resumes on wake | unaffected by local machine state |
+| Status | ✅ available | 📋 planned |
+
+They are not substitutes: **A's unique value is "work with multiple harnesses at your desk + one coherent session memory"; C's value is "available anywhere, anytime"**. See [ADR-0011](docs/02-tech/adr/0011-dual-deployment.md).
+
 ## Quick start
 
 **Prerequisite**: Node ≥ 22.

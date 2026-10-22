@@ -245,6 +245,41 @@ flowchart LR
 - Hermes 经 SSH 隧道把远端 stdio ACP 透传到本地 Gateway。
 - **任务状态持久化到本地 `data/tasks/`（world-file JSONL），个人助手本地真实跑、崩溃重启从日志恢复（ADR-0009）**。
 
+### 5.1 双产品形态（ADR-0011）
+
+共享同一套编排核心（MultiBackendAdapter + durable 内核 + 会话记忆），仅部署形态分化：
+
+**A · 本地个人助手**（当前，✅）：
+
+```mermaid
+flowchart LR
+    subgraph Local["本地 Mac（launchd 守护）"]
+        D["launchd<br/>KeepAlive 崩溃自愈 + RunAtLoad 自启"] --> GW["Gateway"]
+        GW --> OC["OpenCode/Pi"]
+        GW --> DT["data/tasks/ JSONL"]
+    end
+    FS["飞书开放平台"] -->|事件回调| GW
+    WebUI["WebUI/orb"] -->|WebSocket| GW
+```
+
+- 核心价值：全双工调用多 agent + 会话管理/记忆 + 多 harness 分工。
+- 物理边界：电脑醒着可用；合盖休眠即睡（睡眠≠崩溃，durable 救不了），唤醒后 launchd 拉起 + `rebuildTaskMap()` 续跑。
+
+**C · 云端常驻**（规划中，📋）：
+
+```mermaid
+flowchart LR
+    subgraph Cloud["云端（复用 Hermes 云主机）"]
+        GW["Gateway"] --> PG["world-postgres"]
+        GW --> OC["OpenCode/Pi（云上）"]
+    end
+    FS["飞书开放平台"] -->|事件回调| GW
+    WebUI["WebUI/orb"] -->|WebSocket| GW
+```
+
+- 核心价值：7×24 常驻，随时响应，不受本地物理状态影响。
+- 关键差异：TaskWorld 换 world-postgres（本地文件 → 云端），编排层不改（TaskWorld 抽象的价值）。
+
 ---
 
 ## 6. 关键技术风险与验证点
