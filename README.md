@@ -128,12 +128,30 @@ npm run inspect    # 任务观察台：本地任务流转 / 打点 / effect 状�
 
 ## Roadmap
 
-```
-P0 ✅ durable 地基（TS 迁移 + TaskWorld/fold/effect/anchor/fencing + 崩溃恢复端到端）
-P1 ⏳ pi/opencode 接 durable storage（「agent 不会死」落地）
-P2 📋 documents 共享记忆 + 并行 fan-out（矩阵雏形）
-P3 📋 专家横向协作 / 调度器 / 成本账本（真矩阵）
-```
+### P0 · 基础体验打磨（进行中）
+
+- [x] durable 内核（TaskWorld/fold/effect/anchor/fencing + 崩溃恢复）
+- [x] 播报只说结论不全文朗读（6000→500 字符）
+- [x] 工作目录指向项目
+- [x] 不打断用户（话轮规则）
+- [ ] 打断即时生效（待验证）
+- [ ] 进度简短更新（播报节奏）
+- [ ] 任务完成明确确认
+- [ ] 内部工具路径不播报
+
+### P1 · durable 加固
+
+- [ ] 真实崩溃恢复验证（kill -9 → 重启续跑）
+- [ ] pi/opencode session 持久化
+
+### P2 · 多 agent 能力
+
+- [ ] documents 共享记忆
+- [ ] 并行 fan-out
+
+### P3 · 矩阵愿景
+
+- [ ] 专家横向协作 / 调度器 / 成本账本
 
 ## 文档
 

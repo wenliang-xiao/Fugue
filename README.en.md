@@ -128,12 +128,30 @@ Most "Feishu agents" are **synchronous bridges** (cc-connect, botmux): pipe a ha
 
 ## Roadmap
 
-```
-P0 ✅ durable foundation (TS migration + TaskWorld/fold/effect/anchor/fencing + e2e crash recovery)
-P1 ⏳ pi/opencode on durable storage ("the agent never dies")
-P2 📋 documents shared memory + parallel fan-out (matrix prototype)
-P3 📋 expert-to-expert delegation / scheduler / cost ledger (true matrix)
-```
+### P0 · Core experience polish (in progress)
+
+- [x] durable kernel (TaskWorld/fold/effect/anchor/fencing + crash recovery)
+- [x] broadcast conclusion only, not full text (6000→500 chars)
+- [x] workspace points to the project
+- [x] never interrupt the user (turn-taking rules)
+- [ ] interruption takes effect instantly (to verify)
+- [ ] short progress updates (broadcast cadence)
+- [ ] clear task-completion confirmation
+- [ ] no broadcast for internal tool paths
+
+### P1 · durable hardening
+
+- [ ] real crash-recovery verification (kill -9 → restart → resume)
+- [ ] pi/opencode session persistence
+
+### P2 · multi-agent capability
+
+- [ ] documents shared memory
+- [ ] parallel fan-out
+
+### P3 · matrix vision
+
+- [ ] expert-to-expert delegation / scheduler / cost ledger
 
 ## Documentation
 
