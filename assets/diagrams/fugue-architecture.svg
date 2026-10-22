@@ -1,0 +1,334 @@
+<svg viewBox="0 0 946 928" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
+        <title id="archify-diagram-title">Fugue 架构 — 全双工多 harness 编排中枢（durable 化目标）</title>
+        <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
+        <!-- Definitions -->
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+          </marker>
+          <marker id="arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+          </marker>
+          <marker id="arrowhead-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-security" />
+          </marker>
+          <marker id="arrowhead-dashed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="m-dashed" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <!-- Background Grid -->
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- Boundaries (behind everything) -->
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="qwen-audio-agent（复用 · 不改）" x="230" y="276" width="190" height="290" rx="12" class="c-region" stroke-width="1"/>
+
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="Fugue durable 层（自研）" x="542" y="276" width="206" height="584" rx="12" class="c-region" stroke-width="1"/>
+
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="harness（不可靠子进程）" x="774" y="126" width="132" height="490" rx="12" class="c-region" stroke-width="1"/>
+
+        <!-- Connection paths (before components for correct z-order) -->
+        <g data-graph-role="automatic-crossover" style="--step:0">
+          <path data-graph-role="automatic-crossover-underlay" d="M 150 323.9 L 250 323.9" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="voice" data-edge-to="frontend" data-edge-label="全双工语音" data-edge-key="0" data-composition-points="150,323.9;250,323.9" data-composition-crossover="halo" data-composition-independent="true" d="M 150 323.9 L 250 323.9" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:1">
+          <path data-graph-role="automatic-crossover-underlay" d="M 150 471 L 192 471 Q 200 471 200 463 L 200 348 Q 200 340 208 340 L 250 340" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="feishu" data-edge-to="frontend" data-edge-label="text_only" data-edge-key="1" data-composition-points="150,471;200,471;200,340;250,340" data-composition-crossover="halo" data-composition-independent="true" d="M 150 471 L 192 471 Q 200 471 200 463 L 200 348 Q 200 340 208 340 L 250 340" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:2">
+          <path data-graph-role="automatic-crossover-underlay" d="M 320 366 L 320 480" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="frontend" data-edge-to="router" data-edge-label="spawn_thinking" data-edge-key="2" data-composition-points="320,366;320,480" data-composition-crossover="halo" data-composition-independent="true" d="M 320 366 L 320 480" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:3">
+          <path data-graph-role="automatic-crossover-underlay" d="M 320 300 L 320 158" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="frontend" data-edge-to="model" data-edge-label="模型调用" data-edge-key="3" data-composition-points="320,300;320,158" data-composition-crossover="halo" data-composition-independent="true" d="M 320 300 L 320 158" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:4">
+          <path data-graph-role="automatic-crossover-underlay" d="M 400 513 L 472 513 Q 480 513 480 505 L 480 343 Q 480 335 488 335 L 560 335" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="router" data-edge-to="mba" data-edge-label="BackendPort.submit" data-edge-key="4" data-composition-points="400,513;480,513;480,335;560,335" data-composition-crossover="halo" data-composition-independent="true" d="M 400 513 L 472 513 Q 480 513 480 505 L 480 343 Q 480 335 488 335 L 560 335" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:5">
+          <path data-graph-role="automatic-crossover-underlay" d="M 645 370 L 645 460" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="mba" data-edge-to="fold" data-edge-label="读写任务日志" data-edge-key="5" data-composition-points="645,370;645,460" data-composition-crossover="halo" data-composition-independent="true" d="M 645 370 L 645 460" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:6">
+          <path data-graph-role="automatic-crossover-underlay" d="M 630 522 L 630 620" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="fold" data-edge-to="world" data-edge-label="事件持久化" data-edge-key="6" data-composition-points="630,522;630,620" data-composition-crossover="halo" data-composition-independent="true" d="M 630 522 L 630 620" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:7">
+          <path data-graph-role="automatic-crossover-underlay" d="M 720 653 L 736 653 Q 744 653 744 661 L 744 802 Q 744 810 736 810 L 690 810" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="world" data-edge-to="queue" data-edge-label="turn 消息" data-edge-key="7" data-composition-points="720,653;744,653;744,810;690,810" data-composition-crossover="halo" data-composition-independent="true" d="M 720 653 L 736 653 Q 744 653 744 661 L 744 802 Q 744 810 736 810 L 690 810" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:8">
+          <path data-graph-role="automatic-crossover-underlay" d="M 730 321 L 746 321 Q 754 321 754 313 L 754 186 Q 754 178 762 178 L 790 178" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="mba" data-edge-to="pi" data-edge-label="委派" data-edge-key="8" data-composition-points="730,321;754,321;754,178;790,178" data-composition-crossover="halo" data-composition-independent="true" d="M 730 321 L 746 321 Q 754 321 754 313 L 754 186 Q 754 178 762 178 L 790 178" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:9">
+          <path data-graph-role="automatic-crossover-underlay" d="M 730 335 L 752 335 Q 760 335 760 327 L 760 316 Q 760 308 768 308 L 790 308" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="mba" data-edge-to="opencode" data-edge-label="委派" data-edge-key="9" data-composition-points="730,335;760,335;760,308;790,308" data-composition-crossover="halo" data-composition-independent="true" d="M 730 335 L 752 335 Q 760 335 760 327 L 760 316 Q 760 308 768 308 L 790 308" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:10">
+          <path data-graph-role="automatic-crossover-underlay" d="M 730 349 L 752 349 Q 760 349 760 357 L 760 430 Q 760 438 768 438 L 790 438" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="mba" data-edge-to="hermes" data-edge-label="SSH 隧道" data-edge-key="10" data-composition-points="730,349;760,349;760,438;790,438" data-composition-crossover="halo" data-composition-independent="true" d="M 730 349 L 752 349 Q 760 349 760 357 L 760 430 Q 760 438 768 438 L 790 438" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:11">
+          <path data-graph-role="automatic-crossover-underlay" d="M 659 370 L 659 422 Q 659 430 667 430 L 715 430 Q 723 430 723 438 L 723 508 Q 723 516 731 516 L 832 516 Q 840 516 840 524 L 840 540" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="mba" data-edge-to="dsh" data-edge-label="委派" data-edge-key="11" data-composition-points="659,370;659,430;723,430;723,516;840,516;840,540" data-composition-crossover="halo" data-composition-independent="true" d="M 659 370 L 659 422 Q 659 430 667 430 L 715 430 Q 723 430 723 438 L 723 508 Q 723 516 731 516 L 832 516 Q 840 516 840 524 L 840 540" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:12">
+          <path data-graph-role="automatic-crossover-underlay" d="M 560 810 L 544 810 Q 536 810 536 802 L 536 402 Q 536 394 544 394 L 623 394 Q 631 394 631 386 L 631 370" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="queue" data-edge-to="mba" data-edge-label="崩溃重投递" data-edge-key="12" data-composition-points="560,810;536,810;536,394;631,394;631,370" data-composition-crossover="halo" data-composition-independent="true" d="M 560 810 L 544 810 Q 536 810 536 802 L 536 402 Q 536 394 544 394 L 623 394 Q 631 394 631 386 L 631 370" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+
+        <!-- Components -->
+        <g id="node-voice" data-node-id="voice" data-node-label="语音 App" tabindex="0" role="button" aria-label="聚焦语音 App，orb / WebUI / 手机, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="orb / WebUI / 手机" data-node-context="架构组件">
+          <title>语音 App · orb / WebUI / 手机 · 架构组件</title>
+          <rect x="32" y="300" width="118" height="62" rx="6" class="c-mask"/>
+          <rect x="32" y="300" width="118" height="62" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(38 306) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="91" y="329" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">语音 App</text>
+        <text data-detail="context" x="91" y="345" class="t-muted" font-size="9" text-anchor="middle">orb / WebUI / 手机</text>
+        </g>
+
+        <g id="node-feishu" data-node-id="feishu" data-node-label="飞书" tabindex="0" role="button" aria-label="聚焦飞书，text_only 机器人, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="text_only 机器人" data-node-context="架构组件">
+          <title>飞书 · text_only 机器人 · 架构组件</title>
+          <rect x="32" y="440" width="118" height="62" rx="6" class="c-mask"/>
+          <rect x="32" y="440" width="118" height="62" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(38 446) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="91" y="469" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">飞书</text>
+        <text data-detail="context" x="91" y="485" class="t-muted" font-size="9" text-anchor="middle">text_only 机器人</text>
+        </g>
+
+        <g id="node-model" data-node-id="model" data-node-label="豆包 Seeduplex" tabindex="0" role="button" aria-label="聚焦豆包 Seeduplex，全双工语音模型, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="全双工语音模型" data-node-context="架构组件">
+          <title>豆包 Seeduplex · 全双工语音模型 · 架构组件</title>
+          <rect x="250" y="96" width="130" height="62" rx="6" class="c-mask"/>
+          <rect x="250" y="96" width="130" height="62" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(256 102) scale(0.6875)">
+            <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
+            <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="315" y="125" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">豆包 Seeduplex</text>
+        <text data-detail="context" x="315" y="141" class="t-muted" font-size="9" text-anchor="middle">全双工语音模型</text>
+        </g>
+
+        <g id="node-frontend" data-node-id="frontend" data-node-label="前台 Agent" tabindex="0" role="button" aria-label="聚焦前台 Agent，实时对话 · 判断委派, qwen-audio-agent（复用 · 不改）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="实时对话 · 判断委派" data-node-tag="qwen 复用" data-node-context="qwen-audio-agent（复用 · 不改）">
+          <title>前台 Agent · 实时对话 · 判断委派 · qwen-audio-agent（复用 · 不改） · qwen 复用</title>
+          <rect x="250" y="300" width="140" height="66" rx="6" class="c-mask"/>
+          <rect x="250" y="300" width="140" height="66" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(256 306) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="320" y="331" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">前台 Agent</text>
+        <text data-detail="context" x="320" y="347" class="t-muted" font-size="9" text-anchor="middle">实时对话 · 判断委派</text>
+        <text data-detail="fine" x="320" y="358" class="t-backend" font-size="7" text-anchor="middle">qwen 复用</text>
+        </g>
+
+        <g id="node-router" data-node-id="router" data-node-label="语义路由 + TaskManager" tabindex="0" role="button" aria-label="聚焦语义路由 + TaskManager，进度 / 权限 / 播报, qwen-audio-agent（复用 · 不改）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="进度 / 权限 / 播报" data-node-tag="qwen 复用" data-node-context="qwen-audio-agent（复用 · 不改）">
+          <title>语义路由 + TaskManager · 进度 / 权限 / 播报 · qwen-audio-agent（复用 · 不改） · qwen 复用</title>
+          <rect x="250" y="480" width="150" height="66" rx="6" class="c-mask"/>
+          <rect x="250" y="480" width="150" height="66" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(256 486) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="325" y="511" class="t-primary" font-size="10.7" font-weight="600" text-anchor="middle">语义路由 + TaskManager</text>
+        <text data-detail="context" x="325" y="527" class="t-muted" font-size="9" text-anchor="middle">进度 / 权限 / 播报</text>
+        <text data-detail="fine" x="325" y="538" class="t-backend" font-size="7" text-anchor="middle">qwen 复用</text>
+        </g>
+
+        <g id="node-mba" data-node-id="mba" data-node-label="MultiBackendAdapter" tabindex="0" role="button" aria-label="聚焦MultiBackendAdapter，durable · 路由 + 事件聚合, Fugue durable 层（自研）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="durable · 路由 + 事件聚合" data-node-tag="Fugue 自研" data-node-context="Fugue durable 层（自研）">
+          <title>MultiBackendAdapter · durable · 路由 + 事件聚合 · Fugue durable 层（自研） · Fugue 自研</title>
+          <rect x="560" y="300" width="170" height="70" rx="6" class="c-mask"/>
+          <rect x="560" y="300" width="170" height="70" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(566 306) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="645" y="333" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">MultiBackendAdapter</text>
+        <text data-detail="context" x="645" y="349" class="t-muted" font-size="9" text-anchor="middle">durable · 路由 + 事件聚合</text>
+        <text data-detail="fine" x="645" y="362" class="t-backend" font-size="7" text-anchor="middle">Fugue 自研</text>
+        </g>
+
+        <g id="node-fold" data-node-id="fold" data-node-label="fold" tabindex="0" role="button" aria-label="聚焦fold，从日志重建任务状态, Fugue durable 层（自研）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="从日志重建任务状态" data-node-tag="Fugue 自研" data-node-context="Fugue durable 层（自研）">
+          <title>fold · 从日志重建任务状态 · Fugue durable 层（自研） · Fugue 自研</title>
+          <rect x="560" y="460" width="140" height="62" rx="6" class="c-mask"/>
+          <rect x="560" y="460" width="140" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(566 466) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="630" y="489" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">fold</text>
+        <text data-detail="context" x="630" y="505" class="t-muted" font-size="9" text-anchor="middle">从日志重建任务状态</text>
+        <text data-detail="fine" x="630" y="514" class="t-backend" font-size="7" text-anchor="middle">Fugue 自研</text>
+        </g>
+
+        <g id="node-world" data-node-id="world" data-node-label="TaskWorld" tabindex="0" role="button" aria-label="聚焦TaskWorld，Storage + Queue + Streamer, Fugue durable 层（自研）" aria-pressed="false" data-node-kind="database" data-node-sublabel="Storage + Queue + Streamer" data-node-tag="Fugue 自研" data-node-context="Fugue durable 层（自研）">
+          <title>TaskWorld · Storage + Queue + Streamer · Fugue durable 层（自研） · Fugue 自研</title>
+          <rect x="560" y="620" width="160" height="66" rx="6" class="c-mask"/>
+          <rect x="560" y="620" width="160" height="66" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(566 626) scale(0.6875)">
+            <ellipse cx="8" cy="4" rx="5" ry="2"/>
+            <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="640" y="651" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">TaskWorld</text>
+        <text data-detail="context" x="640" y="667" class="t-muted" font-size="9" text-anchor="middle">Storage + Queue + Streamer</text>
+        <text data-detail="fine" x="640" y="678" class="t-database" font-size="7" text-anchor="middle">Fugue 自研</text>
+        </g>
+
+        <g id="node-queue" data-node-id="queue" data-node-label="Queue" tabindex="0" role="button" aria-label="聚焦Queue，崩溃重投递, Fugue durable 层（自研）" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="崩溃重投递" data-node-tag="Fugue 自研" data-node-context="Fugue durable 层（自研）">
+          <title>Queue · 崩溃重投递 · Fugue durable 层（自研） · Fugue 自研</title>
+          <rect x="560" y="780" width="130" height="60" rx="6" class="c-mask"/>
+          <rect x="560" y="780" width="130" height="60" rx="6" class="c-messagebus" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(566 786) scale(0.6875)">
+            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+            <circle cx="5" cy="4.5" r="1" class="sigil-fill"/>
+            <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
+            <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="625" y="808" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Queue</text>
+        <text data-detail="context" x="625" y="824" class="t-muted" font-size="9" text-anchor="middle">崩溃重投递</text>
+        <text data-detail="fine" x="625" y="832" class="t-messagebus" font-size="7" text-anchor="middle">Fugue 自研</text>
+        </g>
+
+        <g id="node-pi" data-node-id="pi" data-node-label="Pi" tabindex="0" role="button" aria-label="聚焦Pi，工作主力, harness（不可靠子进程）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="工作主力" data-node-context="harness（不可靠子进程）">
+          <title>Pi · 工作主力 · harness（不可靠子进程）</title>
+          <rect x="790" y="150" width="100" height="56" rx="6" class="c-mask"/>
+          <rect x="790" y="150" width="100" height="56" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(796 156) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="840" y="176" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Pi</text>
+        <text data-detail="context" x="840" y="192" class="t-muted" font-size="9" text-anchor="middle">工作主力</text>
+        </g>
+
+        <g id="node-opencode" data-node-id="opencode" data-node-label="OpenCode" tabindex="0" role="button" aria-label="聚焦OpenCode，代码, harness（不可靠子进程）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="代码" data-node-context="harness（不可靠子进程）">
+          <title>OpenCode · 代码 · harness（不可靠子进程）</title>
+          <rect x="790" y="280" width="100" height="56" rx="6" class="c-mask"/>
+          <rect x="790" y="280" width="100" height="56" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(796 286) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="840" y="306" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">OpenCode</text>
+        <text data-detail="context" x="840" y="322" class="t-muted" font-size="9" text-anchor="middle">代码</text>
+        </g>
+
+        <g id="node-hermes" data-node-id="hermes" data-node-label="Hermes" tabindex="0" role="button" aria-label="聚焦Hermes，财经 · 云端, harness（不可靠子进程）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="财经 · 云端" data-node-context="harness（不可靠子进程）">
+          <title>Hermes · 财经 · 云端 · harness（不可靠子进程）</title>
+          <rect x="790" y="410" width="100" height="56" rx="6" class="c-mask"/>
+          <rect x="790" y="410" width="100" height="56" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(796 416) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="840" y="436" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Hermes</text>
+        <text data-detail="context" x="840" y="452" class="t-muted" font-size="9" text-anchor="middle">财经 · 云端</text>
+        </g>
+
+        <g id="node-dsh" data-node-id="dsh" data-node-label="dsh" tabindex="0" role="button" aria-label="聚焦dsh，深度调研, harness（不可靠子进程）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="深度调研" data-node-context="harness（不可靠子进程）">
+          <title>dsh · 深度调研 · harness（不可靠子进程）</title>
+          <rect x="790" y="540" width="100" height="56" rx="6" class="c-mask"/>
+          <rect x="790" y="540" width="100" height="56" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(796 546) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="840" y="566" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">dsh</text>
+        <text data-detail="context" x="840" y="582" class="t-muted" font-size="9" text-anchor="middle">深度调研</text>
+        </g>
+
+        <!-- Connection labels -->
+        <g data-detail="context" data-edge-from="voice" data-edge-to="frontend" data-edge-label="全双工语音" data-edge-key="0">
+          <rect x="171" y="303.9" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="200" y="313.9" class="t-edge-emphasis" font-size="8" text-anchor="middle">全双工语音</text>
+        </g>
+        <g data-detail="context" data-edge-from="feishu" data-edge-to="frontend" data-edge-label="text_only" data-edge-key="1">
+          <rect x="173.4" y="385.5" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="200" y="395.5" class="t-edge-emphasis" font-size="8" text-anchor="middle">text_only</text>
+        </g>
+        <g data-detail="context" data-edge-from="frontend" data-edge-to="router" data-edge-label="spawn_thinking" data-edge-key="2">
+          <rect x="236.79999999999998" y="416" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="275.4" y="426" class="t-edge-default" font-size="8" text-anchor="middle">spawn_thinking</text>
+        </g>
+        <g data-detail="context" data-edge-from="frontend" data-edge-to="model" data-edge-label="模型调用" data-edge-key="3">
+          <rect x="265.6" y="222" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="289.8" y="232" class="t-edge-default" font-size="8" text-anchor="middle">模型调用</text>
+        </g>
+        <g data-detail="context" data-edge-from="router" data-edge-to="mba" data-edge-label="BackendPort.submit" data-edge-key="4">
+          <rect x="431.8" y="404" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="480" y="414" class="t-edge-emphasis" font-size="8" text-anchor="middle">BackendPort.submit</text>
+        </g>
+        <g data-detail="context" data-edge-from="mba" data-edge-to="fold" data-edge-label="读写任务日志" data-edge-key="5">
+          <rect x="571.4000000000001" y="408" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="605.2" y="418" class="t-edge-default" font-size="8" text-anchor="middle">读写任务日志</text>
+        </g>
+        <g data-detail="context" data-edge-from="fold" data-edge-to="world" data-edge-label="事件持久化" data-edge-key="6">
+          <rect x="566" y="564" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="595" y="574" class="t-edge-default" font-size="8" text-anchor="middle">事件持久化</text>
+        </g>
+        <g data-detail="context" data-edge-from="world" data-edge-to="queue" data-edge-label="turn 消息" data-edge-key="7">
+          <rect x="717.4" y="711.5" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="744" y="721.5" class="t-edge-default" font-size="8" text-anchor="middle">turn 消息</text>
+        </g>
+        <g data-detail="context" data-edge-from="mba" data-edge-to="pi" data-edge-label="委派" data-edge-key="8">
+          <rect x="739" y="229.5" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="754" y="239.5" class="t-edge-default" font-size="8" text-anchor="middle">委派</text>
+        </g>
+        <g data-detail="context" data-edge-from="mba" data-edge-to="opencode" data-edge-label="委派" data-edge-key="9">
+          <rect x="718" y="273.5" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="733" y="283.5" class="t-edge-default" font-size="8" text-anchor="middle">委派</text>
+        </g>
+        <g data-detail="context" data-edge-from="mba" data-edge-to="hermes" data-edge-label="SSH 隧道" data-edge-key="10">
+          <rect x="735.8" y="373.5" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="760" y="383.5" class="t-edge-default" font-size="8" text-anchor="middle">SSH 隧道</text>
+        </g>
+        <g data-detail="context" data-edge-from="mba" data-edge-to="dsh" data-edge-label="委派" data-edge-key="11">
+          <rect x="676" y="410" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="691" y="420" class="t-edge-default" font-size="8" text-anchor="middle">委派</text>
+        </g>
+        <g data-detail="context" data-edge-from="queue" data-edge-to="mba" data-edge-label="崩溃重投递" data-edge-key="12">
+          <rect x="507" y="582" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="536" y="592" class="t-edge-dashed" font-size="8" text-anchor="middle">崩溃重投递</text>
+        </g>
+
+        <!-- Boundary labels (foreground masks keep routes out of titles) -->
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="qwen-audio-agent（复用 · 不改）">
+          <rect data-graph-role="structural-frame-label-mask" x="234" y="280" width="177.4" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="238" y="293" class="t-cloud" font-size="9" font-weight="600">qwen-audio-agent（复用 · 不改）</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="Fugue durable 层（自研）">
+          <rect data-graph-role="structural-frame-label-mask" x="546" y="280" width="139.6" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="550" y="293" class="t-cloud" font-size="9" font-weight="600">Fugue durable 层（自研）</text>
+        </g>
+
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="harness（不可靠子进程）">
+          <rect data-graph-role="structural-frame-label-mask" x="778" y="130" width="124" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="782" y="142.2608695652174" class="t-cloud" font-size="8.260869565217392" font-weight="600">harness（不可靠子进程）</text>
+        </g>
+
+        <!-- Legend -->
+        <g data-legend="" data-legend-bridge="">
+          <text x="40" y="892" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="40" data-legend-baseline="912" data-legend-width="63">
+            <rect x="40" y="903" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="62" y="912" class="t-muted" font-size="10" font-weight="500">后端</text>
+          </g>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="125" data-legend-baseline="912" data-legend-width="73">
+            <rect x="125" y="903" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="147" y="912" class="t-muted" font-size="10" font-weight="500">数据库</text>
+          </g>
+          <g data-legend-semantic-kind="messagebus" data-legend-kind="messagebus" data-legend-label="消息总线" data-legend-x="220" data-legend-baseline="912" data-legend-width="83">
+            <rect x="220" y="903" width="16" height="10" rx="2.5" class="c-messagebus" stroke-width="1"/>
+            <text x="242" y="912" class="t-muted" font-size="10" font-weight="500">消息总线</text>
+          </g>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="325" data-legend-baseline="912" data-legend-width="83">
+            <rect x="325" y="903" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="347" y="912" class="t-muted" font-size="10" font-weight="500">外部系统</text>
+          </g>
+        </g>
+      </svg>

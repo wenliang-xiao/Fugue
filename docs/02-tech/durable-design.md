@@ -234,3 +234,79 @@ P3：专家横向协作 / 调度器 / 成本账本（真矩阵）
 ```
 
 **判断**：当前设计能让「多 agent 编排」稳定、可恢复、可长跑——这是 80% 的工程难度，也是 ccteam/cc-connect 等竞品没做扎实的地方；剩下 20%（横向协作、并行、共享记忆）是「矩阵」区别于「多 agent 串行」的增量，在 durable 地基上继续演进。
+
+---
+
+## 10. 实现路径：qwen-audio-agent 底座 + durable-harness 设计内化
+
+> 本节回答「怎么基于 durable-harness 和 qwen-audio-agent 实现目标」。核心结论：**复用 qwen-audio-agent 的前台编排，内化 durable-harness 的设计（不 fork、不直接依赖），在 BackendPort 边界做「任务级 durable」**。
+
+### 10.1 三层架构与分工
+
+```
+┌────────────────────────────────────────────────┐
+│ 第 1 层：前台编排（复用 qwen-audio-agent，不改）   │
+│   前台 Agent（豆包全双工）+ 语义路由 + TaskManager │
+│   + Agent Delivery + Gateway Client Protocol    │
+│   + 权限/审批                                    │
+│   接入：BackendPort + spawnThinkingDescription   │
+└───────────────────────┬────────────────────────┘
+                        │ BackendPort.submit
+┌───────────────────────▼────────────────────────┐
+│ 第 2 层：编排 durable 层（Fugue 自研，内化 dh 设计）│
+│   MultiBackendAdapter（durable 版）              │
+│   ├─ fold：从 TaskWorld 日志重建 taskMap          │
+│   ├─ effect sandwich：submit/wait/forward        │
+│   │   memoize + replay（exactly-once）           │
+│   ├─ anchor + queue backstop：崩溃恢复            │
+│   └─ epoch fencing：多端分时共享                  │
+│   TaskWorld = Storage + Queue + Streamer         │
+└───────────┬────────────────────────────────────┘
+            │ ACP stdio（qwen factory，非 storage）
+┌───────────▼────────────────────────────────────┐
+│ 第 3 层：harness 层（不可靠子进程）                │
+│   pi / opencode / hermes / dsh                   │
+│   —— 崩溃 → 重启 → 从日志重新 submit              │
+│   —— harness 自身 durable 交给 harness 自己        │
+│      （Pi 用 @earendil-works/pi-durable，若 ACP 暴露）│
+└────────────────────────────────────────────────┘
+```
+
+### 10.2 为什么内化设计，而不是直接依赖 durable-harness
+
+| 维度 | 直接依赖 durable-harness | 内化设计（本方案） |
+|------|------------------------|-------------------|
+| durable 对象 | harness **session**（模型/工具调用） | 编排**任务**（委派/进度/播报） |
+| 底座 | Vercel / Workflow SDK | qwen-audio-agent |
+| 依赖 | 引入 `@workflow/world` + `durable-harness` | **零新运行时依赖**，借鉴设计 |
+| harness 接入 | 直接操作 harness storage | ACP stdio（qwen factory） |
+| 匹配度 | 低（Fugue 碰不到 harness storage） | 高（在 BackendPort 边界 durable） |
+
+**核心原因**：Fugue 通过 qwen-audio-agent 的 ACP factory 接 harness，看到的是 **ACP 协议（stdio）**，碰不到 harness 的 storage/session 内部。durable-harness 的 adapter 是「直接操作 harness storage」（如 pi-durable 的 `openWorldStorage`），这条路在 Fugue 的 ACP 接入方式下**走不通**。因此 Fugue 只能在 **BackendPort 边界（任务级）做 durable**，把 durable-harness 的「session durable」设计**内化成「任务 durable」**。
+
+### 10.3 两者分工（一句话）
+
+- **qwen-audio-agent**：前台编排 + 多端 + 全双工 + 权限——复用，一行不改。
+- **durable-harness**：提供「如何做 durable」的**设计蓝图**（World 三合一 / intent-outcome 日志 / fold / effect sandwich / replay / anchor / epoch fencing），Fugue 内化成「任务级 durable」的实现。
+- **Fugue 自研**：TaskWorld + 任务事件日志 + fold + effect + anchor 的「任务级」实现 + MultiBackendAdapter durable 化。
+
+### 10.4 关键映射（durable-harness 概念 → Fugue 任务级实现）
+
+| durable-harness 概念 | Fugue 任务级对应 |
+|---------------------|-----------------|
+| session = run | task = run（每个委派任务一条日志） |
+| model/tool 调用 = step | submit/wait/forward = step |
+| `Harness.drive(ctx)` | `MultiBackendAdapter.drive(task)` |
+| `ctx.effect(key, opts, fn)` | 委派步骤 memoize（completed 回放 / failed 抛错 / running 按 replay） |
+| `ReplayPolicy` | submit=`never`（重复产生重复任务），read=`safe` |
+| anchor（队列锁/进程） | Gateway 进程 + 队列消息锁 |
+| epoch fencing | 多端（语音+飞书）takeover 的写冲突防护 |
+| queue backstop | 任务背后队列消息，Gateway 死 → 重投递 |
+| documents | 任务 to-do/进度/结果的 typed JSON 共享状态 |
+| recoverSessions | Gateway 重启扫描 pending 任务重入队 |
+
+### 10.5 为什么不引入 durable-harness 依赖的补充理由
+
+1. **生态耦合**：durable-harness 设计目标是 Vercel/Workflow SDK 部署；Fugue 是本地优先 + 云端 Hermes（阿里云/腾讯云），引入会带来 Vercel 生态的部署假设。
+2. **接口冲突**：qwen-audio-agent 的 `BackendPort` 与 durable-harness 的 `Harness` 是两个不同的契约，Fugue 已实现前者，桥接两者需额外适配层，收益不成比例。
+3. **学习/掌控成本**：durable-harness 的机制（~3000 行内核）内化成「任务级」裁剪版，比引入完整依赖更可控、更贴合 Fugue 的「可读 + 模块化」宪法。
