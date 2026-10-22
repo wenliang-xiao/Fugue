@@ -58,6 +58,11 @@ export async function loadState(world: TaskWorld, runId: string): Promise<TaskSt
   return fold(emptyTaskState(runId), events)
 }
 
+/** 会话移交（多端 takeover）：写 handoff 事件递增 epoch，stale 写被 fence。 */
+export async function handoff(world: TaskWorld, runId: string): Promise<void> {
+  await world.append(runId, { type: 'run_handoff', at: Date.now() })
+}
+
 /**
  * exactly-once 原语：key 是 memo 键，同一逻辑调用的稳定标识。
  * fn 只在「无记录」或「gone+safe 重跑」时执行；其余情况回放或抛错。
@@ -101,6 +106,7 @@ async function runEffect<T>(
 ): Promise<T> {
   const id = stepId()
   const anchor = processIdentity()
+  const epoch = (await loadState(ctx.world, ctx.runId)).epoch
   const intent: TaskEvent = {
     type: 'step_started',
     correlationId: id,
@@ -110,6 +116,7 @@ async function runEffect<T>(
       replay: opts.replay,
       input: opts.input,
       anchor,
+      epoch,
       ...(retryOf ? { retryOf: retryOf.stepId } : {}),
     },
     at: Date.now(),

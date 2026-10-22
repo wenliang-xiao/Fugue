@@ -35,6 +35,10 @@ export interface TaskState {
   effectOrder: EffectRecord[]
   /** 输了 first-writer-wins 竞争的 step id */
   superseded: Set<string>
+  /** fencing token：handoff 递增，stale 写被 fence */
+  epoch: number
+  /** 被 fence 的 step id（写于 stale epoch） */
+  fenced: Set<string>
   /** 已折叠的事件数（也是日志 offset） */
   eventCount: number
 }
@@ -46,6 +50,8 @@ export function emptyTaskState(runId: string): TaskState {
     effects: new Map(),
     effectOrder: [],
     superseded: new Set(),
+    epoch: 0,
+    fenced: new Set(),
     eventCount: 0,
   }
 }
@@ -58,6 +64,8 @@ interface StepEnvelope {
   input: unknown
   /** 写 intent 的进程身份 */
   anchor?: ProcessIdentity
+  /** 写 intent 时的 epoch（fencing 判定） */
+  epoch?: number
 }
 
 /**
@@ -81,10 +89,21 @@ export function fold(state: TaskState, events: TaskEvent[]): TaskState {
         state.status = 'cancelled'
         break
 
+      case 'run_handoff':
+        // 会话移交（多端 takeover）：递增 epoch，stale 写被 fence
+        state.epoch++
+        break
+
       case 'step_started': {
         const stepId = event.correlationId ?? ''
         const env = event.data as StepEnvelope | undefined
         if (!stepId || !env?.key) break
+        // fencing：写于 stale epoch（未看到最新 handoff），忽略
+        if (env.epoch !== undefined && env.epoch !== state.epoch) {
+          state.fenced.add(stepId)
+          state.superseded.add(stepId)
+          break
+        }
         // first-writer-wins：同 key 已有记录，后一个被 superseded
         if (state.effects.has(env.key)) {
           state.superseded.add(stepId)
