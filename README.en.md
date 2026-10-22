@@ -37,6 +37,12 @@ cp config/config.example.env config/config.env
 npm start
 # → WebUI at http://127.0.0.1:3101
 # → frontend voice credentials reuse qwen-audio-agent's config (DASHSCOPE_API_KEY / DOUBAO_API_KEY)
+
+# resident daemon (optional, recommended): autostart + crash self-heal, no terminal
+npm run daemon:install   # install launchd daemon
+npm run daemon:status    # check status
+npm run daemon:stop      # stop
+npm run daemon:uninstall # uninstall
 ```
 
 ```bash

@@ -37,6 +37,12 @@ cp config/config.example.env config/config.env
 npm start
 # → WebUI: http://127.0.0.1:3101
 # → 前台语音凭据复用 qwen-audio-agent 的 config（DASHSCOPE_API_KEY / DOUBAO_API_KEY）
+
+# 常驻守护（可选，推荐）：登录自启 + 崩溃自愈，后台运行不用占终端
+npm run daemon:install   # 安装 launchd 守护
+npm run daemon:status    # 查看状态
+npm run daemon:stop      # 停止
+npm run daemon:uninstall # 卸载
 ```
 
 ```bash
