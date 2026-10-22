@@ -15,7 +15,12 @@
     "poc": "node poc/run-conformance.mjs",
     "start": "tsx src/launcher.ts",
     "inspect": "tsx src/inspect.ts",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "daemon:install": "tsx scripts/daemon.ts install",
+    "daemon:uninstall": "tsx scripts/daemon.ts uninstall",
+    "daemon:start": "tsx scripts/daemon.ts start",
+    "daemon:stop": "tsx scripts/daemon.ts stop",
+    "daemon:status": "tsx scripts/daemon.ts status"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.74.0",
