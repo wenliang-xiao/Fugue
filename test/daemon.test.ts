@@ -10,10 +10,11 @@ test('plist 含 KeepAlive + RunAtLoad（崩溃自愈 + 登录自启）', () => {
   assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\/>/)
 })
 
-test('plist ProgramArguments 用绝对路径的 tsx + launcher.ts', () => {
+test('plist ProgramArguments 用绝对路径的 node + tsx cli + launcher.ts', () => {
   const plist = buildPlist({ projectRoot: '/proj/fugue' })
-  assert.ok(plist.includes('/proj/fugue/node_modules/.bin/tsx'))
+  assert.ok(plist.includes('/proj/fugue/node_modules/tsx/dist/cli.mjs'))
   assert.ok(plist.includes('/proj/fugue/src/launcher.ts'))
+  assert.ok(plist.includes(process.execPath)) // node 绝对路径
 })
 
 test('plist WorkingDirectory 是项目根，日志落到 data/daemon.log', () => {

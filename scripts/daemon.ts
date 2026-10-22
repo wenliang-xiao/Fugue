@@ -24,7 +24,8 @@ export function logDir() {
  * - WorkingDirectory: 项目根，data/ 落本地持久化
  */
 export function buildPlist({ projectRoot = PROJECT_ROOT, logPath = resolve(PROJECT_ROOT, 'data', 'daemon.log') } = {}) {
-  const tsx = resolve(projectRoot, 'node_modules', '.bin', 'tsx')
+  const node = process.execPath
+  const cli = resolve(projectRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
   const launcher = resolve(projectRoot, 'src', 'launcher.ts')
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -34,7 +35,8 @@ export function buildPlist({ projectRoot = PROJECT_ROOT, logPath = resolve(PROJE
   <string>${LABEL}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${tsx}</string>
+    <string>${node}</string>
+    <string>${cli}</string>
     <string>${launcher}</string>
   </array>
   <key>WorkingDirectory</key>
